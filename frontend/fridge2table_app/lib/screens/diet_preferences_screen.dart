@@ -17,31 +17,39 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
   final Set<String> _selectedDiets = {};
   final Set<String> _selectedAllergies = {};
 
+  bool _otherDietSelected = false;
+  bool _otherAllergySelected = false;
+  final _otherDietController = TextEditingController();
+  final _otherAllergyController = TextEditingController();
+
   static const List<Map<String, String>> _dietOptions = [
+    {"emoji": "✅", "name": "No Restrictions", "desc": "I eat everything"},
     {"emoji": "🥦", "name": "Vegetarian", "desc": "No meat or seafood"},
     {"emoji": "🌱", "name": "Vegan", "desc": "No animal products"},
-    {"emoji": "☪️", "name": "Halal", "desc": "Halal certified only"},
-    {"emoji": "🌾", "name": "Gluten Free", "desc": "No wheat, barley, rye"},
-    {"emoji": "🥛", "name": "Dairy Free", "desc": "No milk or dairy products"},
-    {"emoji": "🥜", "name": "Nut Free", "desc": "No peanuts or tree nuts"},
-    {"emoji": "🥑", "name": "Keto", "desc": "High fat, very low carb"},
-    {"emoji": "🍞", "name": "Low Carb", "desc": "Reduced carbohydrates"},
-    {"emoji": "🍖", "name": "Paleo", "desc": "Whole, unprocessed foods"},
     {"emoji": "🐟", "name": "Pescatarian", "desc": "No meat, seafood allowed"},
+    {"emoji": "☪️", "name": "Halal", "desc": "Halal certified only"},
+    {"emoji": "✡️", "name": "Kosher", "desc": "Kosher certified only"},
+    {"emoji": "🌾", "name": "Gluten-Free", "desc": "No wheat, barley, rye"},
+    {"emoji": "🥛", "name": "Dairy-Free", "desc": "No milk or dairy products"},
+    {"emoji": "🥑", "name": "Keto", "desc": "High fat, very low carb"},
+    {"emoji": "🍬", "name": "Low Sugar", "desc": "Minimal added sugar"},
+    {"emoji": "✏️", "name": "Other", "desc": "Type your own"},
   ];
 
   // Matches Figma node 6:1369 (Allergy Setup) exactly, including severity levels
   static const List<Map<String, String>> _allergyOptions = [
+    {"emoji": "✅", "name": "No Allergies", "severity": ""},
     {"emoji": "🥛", "name": "Milk", "severity": "Common allergen"},
     {"emoji": "🥚", "name": "Eggs", "severity": "Common allergen"},
-    {"emoji": "🥜", "name": "Peanuts", "severity": "Severe allergen"},
-    {"emoji": "🌰", "name": "Tree Nuts", "severity": "Severe allergen"},
     {"emoji": "🫘", "name": "Soy", "severity": "Common allergen"},
     {"emoji": "🌾", "name": "Wheat", "severity": "Common allergen"},
     {"emoji": "🐟", "name": "Fish", "severity": "Moderate allergen"},
-    {"emoji": "🦐", "name": "Shellfish", "severity": "Severe allergen"},
     {"emoji": "🌿", "name": "Sesame", "severity": "Moderate allergen"},
     {"emoji": "🌻", "name": "Mustard", "severity": "Moderate allergen"},
+    {"emoji": "🥜", "name": "Peanuts", "severity": "Severe allergen"},
+    {"emoji": "🌰", "name": "Tree Nuts", "severity": "Severe allergen"},
+    {"emoji": "🦐", "name": "Shellfish", "severity": "Severe allergen"},
+    {"emoji": "✏️", "name": "Other", "severity": ""},
   ];
 
   static const Map<String, Color> _severityColors = {
@@ -49,6 +57,13 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
     "Severe allergen": Color(0xFFC0392B),
     "Moderate allergen": Color(0xFFE9A820),
   };
+
+  @override
+  void dispose() {
+    _otherDietController.dispose();
+    _otherAllergyController.dispose();
+    super.dispose();
+  }
 
   void _continue() {
     if (_step == 0) {
@@ -58,9 +73,83 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
     }
   }
 
+  void _toggleDiet(String name) {
+    setState(() {
+      if (name == "No Restrictions") {
+        _selectedDiets
+          ..clear()
+          ..add(name);
+        _otherDietSelected = false;
+        _otherDietController.clear();
+      } else {
+        _selectedDiets.remove("No Restrictions");
+        if (_selectedDiets.contains(name)) {
+          _selectedDiets.remove(name);
+        } else {
+          _selectedDiets.add(name);
+        }
+      }
+    });
+  }
+
+  void _toggleOtherDiet() {
+    setState(() {
+      if (_otherDietSelected) {
+        _otherDietSelected = false;
+        _otherDietController.clear();
+      } else {
+        _otherDietSelected = true;
+        _selectedDiets.remove("No Restrictions");
+      }
+    });
+  }
+
+  void _toggleAllergy(String name) {
+    setState(() {
+      if (name == "No Allergies") {
+        _selectedAllergies
+          ..clear()
+          ..add(name);
+        _otherAllergySelected = false;
+        _otherAllergyController.clear();
+      } else {
+        _selectedAllergies.remove("No Allergies");
+        if (_selectedAllergies.contains(name)) {
+          _selectedAllergies.remove(name);
+        } else {
+          _selectedAllergies.add(name);
+        }
+      }
+    });
+  }
+
+  void _toggleOtherAllergy() {
+    setState(() {
+      if (_otherAllergySelected) {
+        _otherAllergySelected = false;
+        _otherAllergyController.clear();
+      } else {
+        _otherAllergySelected = true;
+        _selectedAllergies.remove("No Allergies");
+      }
+    });
+  }
+
   Future<void> _finish() async {
-    await AuthService.saveDietPreferences(_selectedDiets.toList());
-    await AuthService.saveAllergies(_selectedAllergies.toList());
+    final diets = _selectedDiets.toList();
+    if (_otherDietSelected) {
+      final custom = _otherDietController.text.trim();
+      diets.add(custom.isNotEmpty ? custom : "Other");
+    }
+
+    final allergies = _selectedAllergies.toList();
+    if (_otherAllergySelected) {
+      final custom = _otherAllergyController.text.trim();
+      allergies.add(custom.isNotEmpty ? custom : "Other");
+    }
+
+    await AuthService.saveDietPreferences(diets);
+    await AuthService.saveAllergies(allergies);
 
     if (!mounted) return;
     Navigator.pushReplacement(
@@ -97,6 +186,7 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: _dietCard(_dietOptions[i])),
                 const SizedBox(width: 12),
@@ -241,18 +331,11 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
 
   Widget _dietCard(Map<String, String> option) {
     final name = option["name"]!;
-    final isSelected = _selectedDiets.contains(name);
+    final isOther = name == "Other";
+    final isSelected = isOther ? _otherDietSelected : _selectedDiets.contains(name);
 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          if (isSelected) {
-            _selectedDiets.remove(name);
-          } else {
-            _selectedDiets.add(name);
-          }
-        });
-      },
+      onTap: () => isOther ? _toggleOtherDiet() : _toggleDiet(name),
       child: Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
@@ -265,35 +348,58 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
             width: isSelected ? 1.5 : 1,
           ),
         ),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(option["emoji"]!, style: const TextStyle(fontSize: 24)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: AppColors.textDark,
-                    ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(option["emoji"]!, style: const TextStyle(fontSize: 24)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        option["desc"]!,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textGray,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    option["desc"]!,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textGray,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+            if (isOther && isSelected) ...[
+              const SizedBox(height: 10),
+              TextField(
+                controller: _otherDietController,
+                autofocus: true,
+                style: const TextStyle(fontSize: 12, color: AppColors.textDark),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: "e.g. Low FODMAP",
+                  hintStyle: const TextStyle(fontSize: 12, color: AppColors.textGray),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: AppColors.darkGreen.withValues(alpha: 0.15)),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -302,20 +408,15 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
 
   Widget _allergyCard(Map<String, String> option) {
     final name = option["name"]!;
+    final isOther = name == "Other";
     final severity = option["severity"]!;
-    final severityColor = _severityColors[severity]!;
-    final isSelected = _selectedAllergies.contains(name);
+    final severityColor = severity.isEmpty
+        ? AppColors.chipGreenText
+        : _severityColors[severity]!;
+    final isSelected = isOther ? _otherAllergySelected : _selectedAllergies.contains(name);
 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          if (isSelected) {
-            _selectedAllergies.remove(name);
-          } else {
-            _selectedAllergies.add(name);
-          }
-        });
-      },
+      onTap: () => isOther ? _toggleOtherAllergy() : _toggleAllergy(name),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(17),
@@ -329,57 +430,82 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
             width: isSelected ? 1.5 : 1,
           ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(option["emoji"]!, style: const TextStyle(fontSize: 24)),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: severityColor.withValues(alpha: 0.09),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      severity,
-                      style: TextStyle(
-                        color: severityColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+            Row(
+              children: [
+                Text(option["emoji"]!, style: const TextStyle(fontSize: 24)),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.textDark,
+                        ),
                       ),
+                      if (severity.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: severityColor.withValues(alpha: 0.09),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            severity,
+                            style: TextStyle(
+                              color: severityColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.darkGreen : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.darkGreen
+                          : AppColors.darkGreen.withValues(alpha: 0.11),
                     ),
                   ),
-                ],
-              ),
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                      : null,
+                ),
+              ],
             ),
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.darkGreen : Colors.transparent,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.darkGreen
-                      : AppColors.darkGreen.withValues(alpha: 0.11),
+            if (isOther && isSelected) ...[
+              const SizedBox(height: 10),
+              TextField(
+                controller: _otherAllergyController,
+                autofocus: true,
+                style: const TextStyle(fontSize: 12, color: AppColors.textDark),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: "e.g. Kiwi",
+                  hintStyle: const TextStyle(fontSize: 12, color: AppColors.textGray),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: AppColors.darkGreen.withValues(alpha: 0.15)),
+                  ),
                 ),
               ),
-              child: isSelected
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
-                  : null,
-            ),
+            ],
           ],
         ),
       ),

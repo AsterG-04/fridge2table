@@ -223,62 +223,67 @@ class _InventoryScreenState extends State<InventoryScreen> {
           bottomRight: Radius.circular(28),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 48, 12, 16),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.maybePop(context),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                shape: BoxShape.circle,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.maybePop(context),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+                ),
               ),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
-            ),
-          ),
-          const Expanded(
-            child: Text(
-              "My Pantry",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: "Outfit",
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-                color: Colors.white,
+              const Expanded(
+                child: Text(
+                  "My Pantry",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: "Outfit",
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
               ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ExpiryMonitorScreen()),
-            ),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                shape: BoxShape.circle,
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ExpiryMonitorScreen()),
+                ),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.event_busy_outlined, color: Colors.white, size: 16),
+                ),
               ),
-              child: const Icon(Icons.event_busy_outlined, color: Colors.white, size: 16),
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _openScanner,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                shape: BoxShape.circle,
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _openScanner,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 16),
+                ),
               ),
-              child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 16),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -317,39 +322,42 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildFilterChips() {
-    return SizedBox(
-      height: 34,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        itemCount: _filters.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final filter = _filters[index];
-          final isActive = filter == _activeFilter;
-          return GestureDetector(
-            onTap: () => setState(() => _activeFilter = filter),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isActive ? AppColors.darkGreen : Colors.white,
-                borderRadius: BorderRadius.circular(999),
-                border: isActive
-                    ? null
-                    : Border.all(color: AppColors.darkGreen.withValues(alpha: 0.11)),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                filter,
-                style: TextStyle(
-                  color: isActive ? Colors.white : AppColors.textDark,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          );
-        },
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          for (int i = 0; i < _filters.length; i++) ...[
+            _buildFilterChip(_filters[i]),
+            if (i != _filters.length - 1) const SizedBox(width: 8),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String filter) {
+    final isActive = filter == _activeFilter;
+    return GestureDetector(
+      onTap: () => setState(() => _activeFilter = filter),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.darkGreen : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: isActive
+              ? null
+              : Border.all(color: AppColors.darkGreen.withValues(alpha: 0.11)),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          filter,
+          style: TextStyle(
+            color: isActive ? Colors.white : AppColors.textDark,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

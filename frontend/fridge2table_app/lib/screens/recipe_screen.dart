@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import '../models/cooked_history_entry.dart';
 import '../models/recipe_detail.dart';
 import '../services/api_service.dart';
+import '../services/saved_recipes_store.dart';
 import '../widgets/async_state.dart';
 import 'recipe_detail_screen.dart';
 
 class RecipeScreen extends StatefulWidget {
-  const RecipeScreen({super.key});
+  const RecipeScreen({super.key, this.initialIngredientFilter});
+
+  /// When set, the search field is pre-filled with this ingredient name so
+  /// the list opens pre-filtered to recipes that use it (e.g. tapped from
+  /// an expiring pantry item), and a one-time message is shown confirming
+  /// what's being shown.
+  final String? initialIngredientFilter;
 
   @override
   State<RecipeScreen> createState() => _RecipeScreenState();
@@ -15,6 +23,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
   late Future<List<Map<String, dynamic>>> _recipes;
   String _selectedFilter = 'AI Picks';
   final TextEditingController _searchController = TextEditingController();
+  String? _aiRecommendedName;
 
   final List<String> _filters = [
     'AI Picks',
@@ -36,12 +45,115 @@ class _RecipeScreenState extends State<RecipeScreen> {
   void initState() {
     super.initState();
     _recipes = ApiService.getRecipesDetailed();
+    _searchController.addListener(() => setState(() {}));
+    _loadStores();
+    _loadAiRecommendation();
+
+    final ingredient = widget.initialIngredientFilter;
+    if (ingredient != null) {
+      _searchController.text = ingredient;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Recipes using $ingredient")),
+        );
+      });
+    }
+  }
+
+  Future<void> _loadAiRecommendation() async {
+    try {
+      final name = await ApiService.getAiRecommendation();
+      if (mounted) setState(() => _aiRecommendedName = name);
+    } catch (_) {
+      // AI recommendation is a nice-to-have — silently skip on failure.
+    }
+  }
+
+  Future<void> _openAiRecommendation() async {
+    final name = _aiRecommendedName;
+    if (name == null) return;
+    final items = await _recipes;
+    final match = items.firstWhere(
+      (r) => r['name']?.toString() == name,
+      orElse: () => {},
+    );
+    if (match.isEmpty || !mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RecipeDetailScreen(recipe: RecipeDetail.fromJson(match)),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadStores() async {
+    await SavedRecipesStore.load();
+    await CookedHistoryStore.load();
+    if (mounted) setState(() {});
   }
 
   void _refresh() {
     setState(() {
       _recipes = ApiService.getRecipesDetailed();
     });
+  }
+
+  int _minutesOf(dynamic prepTime) {
+    final match = RegExp(r'\d+').firstMatch(prepTime?.toString() ?? '');
+    return match != null ? int.parse(match.group(0)!) : 999;
+  }
+
+  List<Map<String, dynamic>> _applyFilters(List<Map<String, dynamic>> recipes) {
+    Iterable<Map<String, dynamic>> result = recipes;
+
+    switch (_selectedFilter) {
+      case 'AI Picks':
+        result = List<Map<String, dynamic>>.of(result)
+          ..sort((a, b) => ((b['match_score'] ?? 0) as num)
+              .compareTo((a['match_score'] ?? 0) as num));
+        break;
+      case 'Quick':
+        result = result.where((r) => _minutesOf(r['prep_time']) <= 20);
+        break;
+      case 'Healthy':
+        result = result.where((r) {
+          final tags = (r['diet_tags'] as List?) ?? [];
+          return tags.any((t) => t.toString().toLowerCase() == 'healthy');
+        });
+        break;
+      case 'Saved':
+        result = result.where(
+          (r) => SavedRecipesStore.isSaved(r['name']?.toString() ?? ''),
+        );
+        break;
+      case 'Cooked':
+        final cookedNames =
+            CookedHistoryStore.entries.map((e) => e.name).toSet();
+        result = result.where(
+          (r) => cookedNames.contains(r['name']?.toString() ?? ''),
+        );
+        break;
+    }
+
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      result = result.where((r) {
+        final name = (r['name'] ?? '').toString().toLowerCase();
+        if (name.contains(query)) return true;
+        final ingredients = (r['ingredients'] as List?) ?? [];
+        return ingredients
+            .any((i) => i.toString().toLowerCase().contains(query));
+      });
+    }
+
+    return result.toList();
   }
 
   @override
@@ -53,6 +165,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
           _buildHeader(),
           _buildSearchBar(),
           _buildFilterChips(),
+          _buildAiBanner(),
           Expanded(child: _buildRecipeList()),
         ],
       ),
@@ -199,6 +312,69 @@ class _RecipeScreenState extends State<RecipeScreen> {
     );
   }
 
+  Widget _buildAiBanner() {
+    final name = _aiRecommendedName;
+    if (name == null) return const SizedBox.shrink();
+
+    return Container(
+      color: const Color(0xFFF5F8F6),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: GestureDetector(
+        onTap: _openAiRecommendation,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1B4332), Color(0xFF2D6A4F)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'AI Pick for You',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.white70, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRecipeList() {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _recipes,
@@ -206,16 +382,17 @@ class _RecipeScreenState extends State<RecipeScreen> {
         return AsyncStateBuilder<List<Map<String, dynamic>>>(
           snapshot: snapshot,
           onRetry: _refresh,
-          isEmpty: (items) => items.isEmpty,
+          isEmpty: (items) => _applyFilters(items).isEmpty,
           emptyIcon: Icons.restaurant,
           emptyTitle: 'No recipes found',
-          emptySubtitle: 'Add more ingredients to your pantry',
+          emptySubtitle: 'Try a different search or filter',
           builder: (context, items) {
+            final filtered = _applyFilters(items);
             return ListView.builder(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              itemCount: items.length,
+              itemCount: filtered.length,
               itemBuilder: (context, index) {
-                final recipe = items[index];
+                final recipe = filtered[index];
                 final gradient = _gradients[index % _gradients.length];
                 return _buildRecipeCard(recipe, gradient);
               },
@@ -228,6 +405,8 @@ class _RecipeScreenState extends State<RecipeScreen> {
 
   Widget _buildRecipeCard(Map<String, dynamic> recipe, List<Color> gradient) {
     final name = recipe['name'] ?? '';
+    final isSaved = SavedRecipesStore.isSaved(name.toString());
+    final isAiPick = _aiRecommendedName != null && name.toString() == _aiRecommendedName;
     final score = recipe['match_score'] ?? 0;
     final prepTime = recipe['prep_time'] ?? '20 min';
     final difficulty = recipe['difficulty'] ?? 'Easy';
@@ -241,10 +420,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
           context,
           MaterialPageRoute(
             builder: (_) => RecipeDetailScreen(
-              recipe: RecipeDetail.forName(
-                name,
-                matchPercent: score is int ? score : 80,
-              ),
+              recipe: RecipeDetail.fromJson(recipe),
             ),
           ),
         ),
@@ -257,6 +433,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
               end: Alignment.bottomRight,
               colors: gradient,
             ),
+            border: isAiPick
+                ? Border.all(color: const Color(0xFFFFD700), width: 2)
+                : null,
           ),
           child: Stack(
             children: [
@@ -325,6 +504,56 @@ class _RecipeScreenState extends State<RecipeScreen> {
                   ),
                 ),
               ),
+              Positioned(
+                top: 12,
+                left: 12,
+                child: GestureDetector(
+                  onTap: () async {
+                    await SavedRecipesStore.toggle(name.toString());
+                    if (mounted) setState(() {});
+                  },
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      size: 14,
+                      color: const Color(0xFF1B4332),
+                    ),
+                  ),
+                ),
+              ),
+              if (isAiPick)
+                Positioned(
+                  bottom: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFD700),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.auto_awesome, size: 10, color: Color(0xFF1B4332)),
+                        SizedBox(width: 3),
+                        Text(
+                          'AI Recommended',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1B4332),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

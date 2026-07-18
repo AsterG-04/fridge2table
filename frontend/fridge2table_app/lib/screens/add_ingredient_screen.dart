@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../models/ingredient.dart';
 import '../services/api_service.dart';
+import 'waste_control_screen.dart';
 
 class AddIngredientScreen extends StatefulWidget {
   final String? capturedImagePath;
@@ -120,9 +121,84 @@ class _AddIngredientScreenState
       );
     }
 
-    if (mounted) {
-      Navigator.pop(context, true);
+    if (!mounted) return;
+
+    final isProduce =
+        _selectedCategory == "Vegetables" || _selectedCategory == "Fruits";
+    final seeTips = isProduce ? await _showScrapTip() : false;
+
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    navigator.pop(true);
+    if (seeTips) {
+      navigator.push(
+        MaterialPageRoute(builder: (_) => const WasteControlScreen()),
+      );
     }
+  }
+
+  Future<bool> _showScrapTip() async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("🌱", style: TextStyle(fontSize: 24)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Don't throw away the scraps!",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    "Check Waste Control for tips on regrowing, scrap "
+                    "recipes and composting.",
+                    style: TextStyle(color: AppColors.textGray, fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text("Not Now"),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.darkGreen,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text("See Tips"),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return result ?? false;
   }
 
   Future<void> pickDate() async {

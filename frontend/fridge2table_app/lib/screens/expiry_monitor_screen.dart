@@ -52,9 +52,52 @@ class _ExpiryMonitorScreenState
     });
   }
 
-  Future<void> _deleteItem(int? id) async {
+  Future<bool> _confirmDelete(String title, String message) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFC0392B)),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
+  Future<void> _deleteItem(int? id, String name) async {
     if (id == null) return;
+    final confirmed = await _confirmDelete(
+      "Delete $name?",
+      "This will remove $name from your pantry. This can't be undone.",
+    );
+    if (!confirmed) return;
     await ApiService.deleteIngredient(id);
+    _refresh();
+  }
+
+  Future<void> _deleteAllExpired(List<Map<String, dynamic>> expiredItems) async {
+    if (expiredItems.isEmpty) return;
+    final confirmed = await _confirmDelete(
+      "Delete all expired items?",
+      "This will remove all ${expiredItems.length} expired item(s) from your pantry. This can't be undone.",
+    );
+    if (!confirmed) return;
+    for (final item in expiredItems) {
+      final id = item["id"];
+      if (id != null) {
+        await ApiService.deleteIngredient(id);
+      }
+    }
     _refresh();
   }
 
@@ -260,6 +303,34 @@ class _ExpiryMonitorScreenState
                   color: color,
                 ),
               ),
+              if (status == "expired") ...[
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => _deleteAllExpired(items),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC0392B).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.delete_sweep_outlined, size: 14, color: Color(0xFFC0392B)),
+                        SizedBox(width: 4),
+                        Text(
+                          "Delete All Expired",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFC0392B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -272,11 +343,75 @@ class _ExpiryMonitorScreenState
     );
   }
 
+  Future<void> _showRecipeSheet(String name) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Use $name before it expires!",
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Get recipe recommendations?",
+              style: TextStyle(color: AppColors.textGray, fontSize: 14),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text("Not Now"),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.darkGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text("Yes, Show Me"),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RecipeScreen(initialIngredientFilter: name),
+        ),
+      );
+    }
+  }
+
   Widget _buildItemCard(Map<String, dynamic> item, String status) {
     final (chipBg, chipText) = _catColors(item["category"]);
     final name = item["name"] ?? "";
 
-    return Container(
+    return GestureDetector(
+      onTap: () => _showRecipeSheet(name),
+      child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -328,7 +463,7 @@ class _ExpiryMonitorScreenState
           ),
           const SizedBox(width: 6),
           GestureDetector(
-            onTap: () => _deleteItem(item["id"]),
+            onTap: () => _deleteItem(item["id"], name),
             child: Container(
               width: 32,
               height: 32,
@@ -340,6 +475,7 @@ class _ExpiryMonitorScreenState
             ),
           ),
         ],
+      ),
       ),
     );
   }

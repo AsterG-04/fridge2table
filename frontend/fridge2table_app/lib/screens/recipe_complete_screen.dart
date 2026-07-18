@@ -47,11 +47,49 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
 
   int get _deductedCount => widget.deductions.where((d) => !d.skipped).length;
 
+  /// Converts a pantry unit amount to an approximate gram equivalent, using
+  /// the same unit-aware assumptions as RecipeCookingService's deduction
+  /// math, so "grams saved" reflects what was actually subtracted from the
+  /// pantry rather than a flat guess.
+  double _toGrams(double amount, String unit) {
+    switch (unit.toLowerCase()) {
+      case "g":
+        return amount;
+      case "kg":
+        return amount * 1000;
+      case "ml":
+        return amount;
+      case "l":
+        return amount * 1000;
+      case "pcs":
+        return amount * 50;
+      case "cups":
+        return amount * 240;
+      case "tbsp":
+        return amount * 15;
+      case "tsp":
+        return amount * 5;
+      default:
+        return amount * 50;
+    }
+  }
+
+  double get _foodSavedGrams {
+    var total = 0.0;
+    for (final d in widget.deductions) {
+      if (d.amountUsed != null && d.unit != null) {
+        total += _toGrams(d.amountUsed!, d.unit!);
+      }
+    }
+    return total;
+  }
+
   @override
   Widget build(BuildContext context) {
     final recipe = widget.recipe;
-    final foodSavedGrams = _deductedCount * 25;
-    final co2Avoided = foodSavedGrams * 0.002;
+    final foodSavedGrams = _foodSavedGrams;
+    final co2Saved = foodSavedGrams * 0.0025;
+    final moneySaved = foodSavedGrams * 0.008;
     final points = _deductedCount * 2;
 
     return Scaffold(
@@ -70,7 +108,7 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
                       children: [
                         _pantryUpdatedCard(),
                         const SizedBox(height: 16),
-                        _sustainabilityCard(foodSavedGrams, co2Avoided, points),
+                        _sustainabilityCard(foodSavedGrams, co2Saved, moneySaved, points),
                         const SizedBox(height: 16),
                         _scrapTipCard(),
                       ],
@@ -221,7 +259,11 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
     );
   }
 
-  Widget _sustainabilityCard(int foodSavedGrams, double co2Avoided, int points) {
+  Widget _sustainabilityCard(double foodSavedGrams, double co2Saved, double moneySaved, int points) {
+    final foodSavedLabel = foodSavedGrams >= 1000
+        ? "${(foodSavedGrams / 1000).toStringAsFixed(1)} kg"
+        : "${foodSavedGrams.round()} g";
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -239,8 +281,14 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _impactStat(Icons.savings_outlined, "$foodSavedGrams g", "Food Saved")),
-              Expanded(child: _impactStat(Icons.cloud_outlined, "${co2Avoided.toStringAsFixed(1)} kg", "CO₂ Avoided")),
+              Expanded(child: _impactStat(Icons.savings_outlined, foodSavedLabel, "Food Saved")),
+              Expanded(child: _impactStat(Icons.cloud_outlined, "${co2Saved.toStringAsFixed(2)} kg", "CO₂ Avoided")),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _impactStat(Icons.attach_money, "RM ${moneySaved.toStringAsFixed(2)}", "Money Saved")),
               Expanded(child: _impactStat(Icons.star_outline, "+$points", "Points")),
             ],
           ),

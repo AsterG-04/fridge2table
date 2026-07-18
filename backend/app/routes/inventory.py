@@ -4,6 +4,9 @@ from datetime import date, datetime
 import json
 import os
 
+import httpx
+
+from ..config import OPENROUTER_API_KEY, OPENROUTER_MODEL, OPENROUTER_URL
 from ..database import SessionLocal
 from ..schemas import IngredientCreate, IngredientResponse
 from ..crud import (
@@ -24,17 +27,39 @@ def get_db():
         db.close()
 
 
-INDEX_PATH = os.path.join(
+RECIPES_PATH = os.path.join(
     os.path.dirname(__file__),
     "..",
     "..",
-    "recipes_index.json"
+    "data",
+    "recipes_full.json"
 )
 
-with open(INDEX_PATH, "r") as f:
+
+def _normalize(word: str) -> str:
+    """Lowercases and lightly de-pluralizes an ingredient name so pantry
+    entries like "Eggs" or "Tomatoes" match recipe ingredients like "egg"
+    or "tomato" without needing an exact-plural match."""
+    w = word.strip().lower()
+    if w.endswith("ies") and len(w) > 4:
+        return w[:-3] + "y"
+    if w.endswith("es") and len(w) > 4:
+        return w[:-2]
+    if w.endswith("s") and len(w) > 3:
+        return w[:-1]
+    return w
+
+
+with open(RECIPES_PATH, "r", encoding="utf-8") as f:
     _data = json.load(f)
     ALL_RECIPES = _data["recipes"]
-    RECIPE_INDEX = _data["index"]
+
+    # Rebuild the index over normalized ingredient names so lookups match
+    # however the user actually typed the ingredient in their pantry.
+    RECIPE_INDEX = {}
+    for _i, _recipe in enumerate(ALL_RECIPES):
+        for _ingredient in _recipe["ingredients"]:
+            RECIPE_INDEX.setdefault(_normalize(_ingredient), []).append(_i)
 
 
 @router.post("/ingredient", response_model=IngredientResponse)
@@ -117,16 +142,8 @@ def remove_ingredient(
     return delete_ingredient(db, ingredient_id)
 
 
-@router.get("/recipes")
-def get_recipes(
-    db: Session = Depends(get_db)
-):
-    ingredients = get_ingredients(db)
-
-    user_ingredients = set(
-        item.name.lower()
-        for item in ingredients
-    )
+def _matched_recipes(ingredient_names: list[str]):
+    user_ingredients = set(_normalize(name) for name in ingredient_names)
 
     if not user_ingredients:
         return []
@@ -140,7 +157,7 @@ def get_recipes(
     results = []
     for idx in candidate_ids:
         recipe = ALL_RECIPES[idx]
-        recipe_ingredients = set(recipe["ingredients"])
+        recipe_ingredients = set(_normalize(i) for i in recipe["ingredients"])
         matches = user_ingredients & recipe_ingredients
 
         if not matches:
@@ -150,13 +167,12 @@ def get_recipes(
             len(matches) / len(recipe_ingredients) * 100
         )
 
+        # Full recipe (steps, nutrition, cook_time, etc.) plus match info,
+        # so Recipe Detail can render real data without a second lookup.
         results.append({
-            "name": recipe["name"],
+            **recipe,
             "match_score": score,
             "matched_ingredients": list(matches),
-            "prep_time": recipe.get("prep_time", "20 min"),
-            "difficulty": recipe.get("difficulty", "Easy"),
-            "diet_tags": recipe.get("diet_tags", ["Healthy"]),
         })
 
     results.sort(
@@ -164,4 +180,61 @@ def get_recipes(
         reverse=True
     )
 
+    return results
+
+
+@router.get("/recipes")
+def get_recipes(
+    db: Session = Depends(get_db)
+):
+    ingredients = get_ingredients(db)
+    results = _matched_recipes([item.name for item in ingredients])
     return results[:5]
+
+
+@router.get("/ai-recommendation")
+def get_ai_recommendation(
+    db: Session = Depends(get_db)
+):
+    ingredients = get_ingredients(db)
+    ingredient_names = [item.name for item in ingredients]
+
+    candidates = _matched_recipes(ingredient_names)[:10]
+    if not candidates:
+        return {"recipe_name": None, "source": "none"}
+
+    if not OPENROUTER_API_KEY:
+        return {"recipe_name": candidates[0]["name"], "source": "fallback"}
+
+    recipe_names = [c["name"] for c in candidates]
+    prompt = (
+        f"Given these ingredients: {', '.join(ingredient_names)}, "
+        f"suggest the best recipe name from this list: {', '.join(recipe_names)}. "
+        "Reply with just the recipe name."
+    )
+
+    try:
+        response = httpx.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": OPENROUTER_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=10.0,
+        )
+        response.raise_for_status()
+        reply = response.json()["choices"][0]["message"]["content"].strip().lower()
+
+        # Match the model's free-text reply back to one of the candidate
+        # names (case-insensitive) rather than trusting it verbatim.
+        for name in recipe_names:
+            if name.lower() in reply:
+                return {"recipe_name": name, "source": "ai"}
+
+        return {"recipe_name": candidates[0]["name"], "source": "fallback"}
+    except Exception:
+        return {"recipe_name": candidates[0]["name"], "source": "fallback"}

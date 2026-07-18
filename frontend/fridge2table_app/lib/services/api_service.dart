@@ -152,6 +152,19 @@ class ApiService {
       throw Exception("Failed to load recipes");
     }
 
+    static Future<String?> getAiRecommendation() async {
+      final response = await http.get(
+        Uri.parse("$baseUrl/ai-recommendation"),
+      ).timeout(_timeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return data["recipe_name"] as String?;
+      }
+
+      throw Exception("Failed to load AI recommendation");
+    }
+
     static Future<List<Map<String, dynamic>>>
         getExpiryStatus() async {
 

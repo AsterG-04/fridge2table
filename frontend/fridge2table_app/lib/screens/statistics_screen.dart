@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
+import '../models/cooked_history_entry.dart';
 import '../services/api_service.dart';
 
 class _MonthTrend {
@@ -32,18 +33,24 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   int? _totalItems;
   int? _expiredCount;
   int? _recipesMatched;
-
-  static const List<_MonthTrend> _trends = [
-    _MonthTrend("Jan", 2.1, 0.4),
-    _MonthTrend("Feb", 2.6, 0.3),
-    _MonthTrend("Mar", 2.3, 0.6),
-    _MonthTrend("Apr", 2.8, 0.2),
-    _MonthTrend("May", 3.1, 0.3),
-    _MonthTrend("Jun", 2.9, 0.2),
-  ];
+  int? _recipesCooked;
+  double _foodSavedKg = 0;
+  List<_MonthTrend> _trends = [];
+  bool _historyLoaded = false;
 
   static const Color _savedColor = AppColors.chipGreenText;
   static const Color _wastedColor = Color(0xFFC0392B);
+
+  // Rough estimate — the app doesn't track exact per-cook ingredient
+  // weights in history (only Recipe Complete has that, per-session), so
+  // monthly trends and total Food Saved are estimated from how many times
+  // each recipe was cooked using this average.
+  static const double _avgKgPerCook = 0.15;
+
+  static const List<String> _monthAbbrev = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
 
   static const List<_CategoryShare> _categories = [
     _CategoryShare("Vegetables", 38, AppColors.chipGreenText),
@@ -56,6 +63,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   void initState() {
     super.initState();
     _loadRealStats();
+    _loadHistoryStats();
   }
 
   Future<void> _loadRealStats() async {
@@ -80,6 +88,48 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     } catch (_) {
       // Falls back to "—" below.
     }
+  }
+
+  Future<void> _loadHistoryStats() async {
+    await CookedHistoryStore.load();
+    if (!mounted) return;
+
+    final totalCooked = CookedHistoryStore.totalMealsCooked;
+
+    setState(() {
+      _recipesCooked = totalCooked;
+      _foodSavedKg = totalCooked * _avgKgPerCook;
+      _trends = _buildTrendsFromHistory();
+      _historyLoaded = true;
+    });
+  }
+
+  List<_MonthTrend> _buildTrendsFromHistory() {
+    final now = DateTime.now();
+
+    // Last 6 months, oldest first, keyed by "year-month" to stay correct
+    // across a year boundary.
+    final months = <String, _MonthTrend>{};
+    for (int i = 5; i >= 0; i--) {
+      final d = DateTime(now.year, now.month - i, 1);
+      months["${d.year}-${d.month}"] = _MonthTrend(_monthAbbrev[d.month - 1], 0, 0);
+    }
+
+    for (final entry in CookedHistoryStore.entries) {
+      final parts = entry.lastCookedLabel.trim().split(RegExp(r"\s+"));
+      if (parts.length != 2) continue;
+      final monthIdx = _monthAbbrev.indexOf(parts[1]) + 1;
+      if (monthIdx == 0) continue;
+
+      final key = "${now.year}-$monthIdx";
+      final existing = months[key];
+      if (existing == null) continue;
+
+      final savedKg = entry.timesCooked * _avgKgPerCook;
+      months[key] = _MonthTrend(existing.label, existing.saved + savedKg, existing.wasted + savedKg * 0.15);
+    }
+
+    return months.values.toList();
   }
 
   void _showHelp(BuildContext context) {
@@ -114,7 +164,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   _buildPantrySnapshot(),
                   const SizedBox(height: 20),
                   const Text(
-                    "Estimated Impact",
+                    "Cooking Impact",
                     style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
@@ -188,11 +238,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Widget _buildStatGrid() {
+    final foodSavedLabel = _historyLoaded ? "${_foodSavedKg.toStringAsFixed(1)} kg" : "—";
+    final recipesCookedLabel = _recipesCooked?.toString() ?? "—";
+
     return Row(
       children: [
-        Expanded(child: _statCard(Icons.savings_outlined, "14 kg", "Food Saved")),
-        const SizedBox(width: 12),
-        Expanded(child: _statCard(Icons.eco_outlined, "92%", "Waste Reduced")),
+        Expanded(child: _statCard(Icons.savings_outlined, foodSavedLabel, "Food Saved")),
+        const SizedBox(width: 8),
+        Expanded(child: _statCard(Icons.restaurant, recipesCookedLabel, "Recipes Cooked")),
       ],
     );
   }
@@ -220,7 +273,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Widget _buildTrendsCard(BuildContext context) {
-    final maxValue = _trends.map((t) => t.saved + t.wasted).reduce(math.max);
+    if (_trends.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final maxValue = _trends
+        .map((t) => t.saved + t.wasted)
+        .fold(0.01, math.max); // avoid divide-by-zero when nothing's been cooked yet
 
     return Container(
       width: double.infinity,
@@ -230,6 +289,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text("Monthly Trends", style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(
+            "Estimated from your cooking history",
+            style: TextStyle(color: AppColors.textGray.withValues(alpha: 0.8), fontSize: 11),
+          ),
           const SizedBox(height: 16),
           SizedBox(
             height: 120,
@@ -261,7 +324,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
     return GestureDetector(
       onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("${t.label}: ${t.saved} kg saved · ${t.wasted} kg wasted")),
+        SnackBar(content: Text("${t.label}: ${t.saved.toStringAsFixed(2)} kg saved · ${t.wasted.toStringAsFixed(2)} kg wasted")),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,

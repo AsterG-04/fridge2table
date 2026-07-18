@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
 import '../models/recipe_detail.dart';
+import '../services/auth_service.dart';
 import 'cooking_mode_screen.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
@@ -15,6 +16,43 @@ class RecipeDetailScreen extends StatefulWidget {
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _saved = false;
+  List<String> _matchedAllergens = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllergyWarnings();
+  }
+
+  Future<void> _loadAllergyWarnings() async {
+    final allergies = await AuthService.getAllergies();
+    final relevant = allergies.where((a) => a != "No Allergies").toList();
+    if (relevant.isEmpty) return;
+
+    final matches = <String>[];
+    for (final allergy in relevant) {
+      final stem = _allergyStem(allergy);
+      final hits = widget.recipe.ingredients.where(
+        (ing) => _matchesAllergy(ing.name, stem),
+      );
+      if (hits.isNotEmpty) matches.add(allergy);
+    }
+
+    if (mounted && matches.isNotEmpty) {
+      setState(() => _matchedAllergens = matches);
+    }
+  }
+
+  String _allergyStem(String allergy) {
+    var a = allergy.toLowerCase().trim();
+    if (a.endsWith('s') && a.length > 3) a = a.substring(0, a.length - 1);
+    return a;
+  }
+
+  bool _matchesAllergy(String ingredientName, String allergyStem) {
+    final ing = ingredientName.toLowerCase();
+    return ing.contains(allergyStem) || allergyStem.contains(ing);
+  }
 
   (Color, Color) _catColors(String initials) {
     const palette = [
@@ -54,15 +92,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          recipe.description,
-                          style: const TextStyle(
-                            color: AppColors.textGray,
-                            fontSize: 13,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
+                        if (_matchedAllergens.isNotEmpty) ...[
+                          _allergyWarningCard(_matchedAllergens),
+                          const SizedBox(height: 16),
+                        ],
+                        if (recipe.sustainabilityTip.isNotEmpty) ...[
+                          _sustainabilityTipCard(recipe.sustainabilityTip),
+                          const SizedBox(height: 16),
+                        ],
                         _sectionCard(
                           title: "Ingredients",
                           child: Column(
@@ -184,28 +221,40 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       width: double.infinity,
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _statChip(Icons.access_time, recipe.time),
-          const SizedBox(width: 16),
-          _statChip(Icons.local_fire_department_outlined, "${recipe.calories} cal"),
-          const SizedBox(width: 16),
-          _statChip(Icons.bar_chart, recipe.difficulty),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.chipGreenBg,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              "${recipe.matchPercent}% match",
-              style: const TextStyle(
-                color: AppColors.chipGreenText,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+          Row(
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 14,
+                  runSpacing: 8,
+                  children: [
+                    _statChip(Icons.timer_outlined, "${recipe.time} prep"),
+                    _statChip(Icons.outdoor_grill_outlined, "${recipe.cookTime} cook"),
+                    _statChip(Icons.local_fire_department_outlined, "${recipe.calories} cal"),
+                    _statChip(Icons.bar_chart, recipe.difficulty),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.chipGreenBg,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  "${recipe.matchPercent}% match",
+                  style: const TextStyle(
+                    color: AppColors.chipGreenText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -220,6 +269,93 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         const SizedBox(width: 4),
         Text(label, style: const TextStyle(color: AppColors.textGray, fontSize: 12)),
       ],
+    );
+  }
+
+  Widget _allergyWarningCard(List<String> allergens) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDF2F0),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC0392B).withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFC0392B)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "ALLERGY WARNING",
+                  style: TextStyle(
+                    color: Color(0xFFC0392B),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "This recipe contains ${allergens.join(", ")}, which you've marked as an allergy.",
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sustainabilityTipCard(String tip) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.lightGreen,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.eco_outlined, size: 16, color: AppColors.darkGreen),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "SUSTAINABILITY TIP",
+                  style: TextStyle(
+                    color: AppColors.darkGreen,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tip,
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

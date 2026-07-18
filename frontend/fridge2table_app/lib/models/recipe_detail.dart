@@ -34,145 +34,128 @@ class CookingStep {
 }
 
 class RecipeDetail {
+  final int? id;
   final String name;
   final String tags;
   final String time;
+  final String cookTime;
   final int calories;
   final String difficulty;
   final int matchPercent;
-  final String description;
+  final String sustainabilityTip;
+  final String cuisine;
   final List<RecipeIngredientDetail> ingredients;
   final NutritionInfo nutrition;
   final List<CookingStep> steps;
 
   const RecipeDetail({
+    this.id,
     required this.name,
     required this.tags,
     required this.time,
+    required this.cookTime,
     required this.calories,
     required this.difficulty,
     required this.matchPercent,
-    required this.description,
+    required this.sustainabilityTip,
+    required this.cuisine,
     required this.ingredients,
     required this.nutrition,
     required this.steps,
   });
 
-  static final Map<String, RecipeDetail> _library = {
-    "spinach & egg omelette": const RecipeDetail(
-      name: "Spinach & Egg Omelette",
-      tags: "Vegetarian · Halal · Quick",
-      time: "15 min",
-      calories: 280,
-      difficulty: "Easy",
-      matchPercent: 94,
-      description: "A quick, protein-rich omelette with fresh spinach.",
-      ingredients: [
-        RecipeIngredientDetail(name: "Spinach", initials: "SP", quantity: "150 g"),
-        RecipeIngredientDetail(name: "Eggs", initials: "EG", quantity: "3 pcs"),
-        RecipeIngredientDetail(name: "Olive Oil", initials: "OL", quantity: "2 tbsp"),
-        RecipeIngredientDetail(name: "Garlic", initials: "GA", quantity: "2 cloves", missing: true),
-        RecipeIngredientDetail(name: "Salt", initials: "SA", quantity: "to taste"),
-      ],
-      nutrition: NutritionInfo(calories: 280, protein: "22 g", carbs: "8 g", fat: "18 g"),
-      steps: [
-        CookingStep(title: "Prep eggs", instructions: "Crack 3 eggs into a bowl. Add a pinch of salt and whisk until smooth."),
-        CookingStep(title: "Wash spinach", instructions: "Rinse the spinach and roughly chop it."),
-        CookingStep(title: "Sauté garlic", instructions: "Heat olive oil and sauté garlic until fragrant."),
-        CookingStep(title: "Wilt spinach", instructions: "Add spinach to the pan and cook until wilted."),
-        CookingStep(title: "Cook the omelette", instructions: "Pour the eggs over the spinach and cook on low heat until set."),
-        CookingStep(title: "Serve", instructions: "Fold the omelette in half and serve warm."),
-      ],
-    ),
-    "tomato basil pasta": const RecipeDetail(
-      name: "Tomato Basil Pasta",
-      tags: "Vegan · Quick",
-      time: "25 min",
-      calories: 410,
-      difficulty: "Medium",
-      matchPercent: 87,
-      description: "A simple pasta tossed in a fresh tomato and basil sauce.",
-      ingredients: [
-        RecipeIngredientDetail(name: "Tomatoes", initials: "TO", quantity: "4 pcs"),
-        RecipeIngredientDetail(name: "Pasta", initials: "PA", quantity: "200 g"),
-        RecipeIngredientDetail(name: "Basil", initials: "BA", quantity: "a handful"),
-        RecipeIngredientDetail(name: "Garlic", initials: "GA", quantity: "2 cloves"),
-        RecipeIngredientDetail(name: "Olive Oil", initials: "OL", quantity: "2 tbsp"),
-      ],
-      nutrition: NutritionInfo(calories: 410, protein: "12 g", carbs: "68 g", fat: "10 g"),
-      steps: [
-        CookingStep(title: "Boil pasta", instructions: "Cook pasta in salted boiling water until al dente."),
-        CookingStep(title: "Make the sauce", instructions: "Sauté garlic, then add chopped tomatoes and simmer."),
-        CookingStep(title: "Combine", instructions: "Toss the drained pasta into the sauce."),
-        CookingStep(title: "Add basil", instructions: "Stir in fresh basil leaves off the heat."),
-        CookingStep(title: "Serve", instructions: "Plate and drizzle with olive oil."),
-      ],
-    ),
-    "chicken stir fry": const RecipeDetail(
-      name: "Chicken Stir Fry",
-      tags: "Halal · High Protein",
-      time: "20 min",
-      calories: 390,
-      difficulty: "Medium",
-      matchPercent: 82,
-      description: "A fast weeknight stir fry with chicken and vegetables.",
-      ingredients: [
-        RecipeIngredientDetail(name: "Chicken Breast", initials: "CH", quantity: "300 g"),
-        RecipeIngredientDetail(name: "Bell Pepper", initials: "BE", quantity: "1 pc"),
-        RecipeIngredientDetail(name: "Soy Sauce", initials: "SO", quantity: "2 tbsp"),
-        RecipeIngredientDetail(name: "Garlic", initials: "GA", quantity: "2 cloves"),
-      ],
-      nutrition: NutritionInfo(calories: 390, protein: "34 g", carbs: "18 g", fat: "16 g"),
-      steps: [
-        CookingStep(title: "Slice chicken", instructions: "Cut chicken breast into thin strips."),
-        CookingStep(title: "Sear chicken", instructions: "Stir-fry chicken over high heat until browned."),
-        CookingStep(title: "Add vegetables", instructions: "Add bell pepper and garlic, stir-fry for 2 minutes."),
-        CookingStep(title: "Season", instructions: "Pour in soy sauce and toss to coat."),
-        CookingStep(title: "Serve", instructions: "Serve hot over rice."),
-      ],
-    ),
-    "green smoothie bowl": const RecipeDetail(
-      name: "Green Smoothie Bowl",
-      tags: "Vegan · No Cook",
-      time: "10 min",
-      calories: 240,
-      difficulty: "Easy",
-      matchPercent: 76,
-      description: "A refreshing no-cook smoothie bowl topped with fruit.",
-      ingredients: [
-        RecipeIngredientDetail(name: "Spinach", initials: "SP", quantity: "50 g"),
-        RecipeIngredientDetail(name: "Banana", initials: "BA", quantity: "1 pc"),
-        RecipeIngredientDetail(name: "Milk", initials: "MI", quantity: "200 ml"),
-      ],
-      nutrition: NutritionInfo(calories: 240, protein: "6 g", carbs: "45 g", fat: "3 g"),
-      steps: [
-        CookingStep(title: "Blend", instructions: "Blend spinach, banana, and milk until smooth."),
-        CookingStep(title: "Pour", instructions: "Pour into a bowl."),
-        CookingStep(title: "Top", instructions: "Add your favourite toppings and serve."),
-      ],
-    ),
-  };
+  static String _titleCase(String s) {
+    if (s.isEmpty) return s;
+    return s.split(RegExp(r"\s+")).map((w) {
+      if (w.isEmpty) return w;
+      return w[0].toUpperCase() + w.substring(1);
+    }).join(" ");
+  }
 
-  factory RecipeDetail.forName(String name, {int matchPercent = 80}) {
-    final found = _library[name.trim().toLowerCase()];
-    if (found != null) return found;
+  static String _initialsFor(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return "?";
+    final words = trimmed.split(RegExp(r"\s+"));
+    if (words.length == 1) {
+      return words[0].substring(0, words[0].length >= 2 ? 2 : 1).toUpperCase();
+    }
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+
+  /// Builds a recipe detail directly from the backend's /recipes response,
+  /// which already includes the full recipe (steps, nutrition, cook_time,
+  /// sustainability_tip, cuisine) merged with match_score/matched_ingredients
+  /// for the current pantry.
+  factory RecipeDetail.fromJson(Map<String, dynamic> json) {
+    final ingredientNames = (json["ingredients"] as List? ?? [])
+        .map((e) => e.toString())
+        .toList();
+    final matched = (json["matched_ingredients"] as List? ?? [])
+        .map((e) => e.toString().toLowerCase())
+        .toSet();
+    final dietTags = (json["diet_tags"] as List? ?? [])
+        .map((e) => e.toString())
+        .toList();
+    final stepsList = (json["steps"] as List? ?? [])
+        .map((e) => e.toString())
+        .toList();
+    final nutritionJson = json["nutrition"] as Map<String, dynamic>? ?? {};
+    final cuisine = json["cuisine"]?.toString() ?? "";
 
     return RecipeDetail(
+      id: json["id"] is int ? json["id"] as int : null,
+      name: json["name"]?.toString() ?? "",
+      tags: dietTags.isNotEmpty ? dietTags.join(" · ") : (cuisine.isNotEmpty ? cuisine : "Recipe"),
+      time: json["prep_time"]?.toString() ?? "20 min",
+      cookTime: json["cook_time"]?.toString() ?? "—",
+      calories: nutritionJson["calories"] is int ? nutritionJson["calories"] as int : 0,
+      difficulty: json["difficulty"]?.toString() ?? "Easy",
+      matchPercent: json["match_score"] is int ? json["match_score"] as int : 0,
+      sustainabilityTip: json["sustainability_tip"]?.toString() ?? "",
+      cuisine: cuisine,
+      ingredients: [
+        for (final ingredientName in ingredientNames)
+          RecipeIngredientDetail(
+            name: _titleCase(ingredientName),
+            initials: _initialsFor(ingredientName),
+            quantity: "as needed",
+            missing: !matched.contains(ingredientName.toLowerCase()),
+          ),
+      ],
+      nutrition: NutritionInfo(
+        calories: nutritionJson["calories"] is int ? nutritionJson["calories"] as int : 0,
+        protein: nutritionJson["protein"]?.toString() ?? "—",
+        carbs: nutritionJson["carbs"]?.toString() ?? "—",
+        fat: nutritionJson["fat"]?.toString() ?? "—",
+      ),
+      steps: [
+        for (int i = 0; i < stepsList.length; i++)
+          CookingStep(title: "Step ${i + 1}", instructions: stepsList[i]),
+      ],
+    );
+  }
+
+  /// Fallback for places that only know a recipe's name (e.g. Cooked
+  /// History's "Cook Again", where the original full recipe payload isn't
+  /// retained) — not real recipe data, just enough to not crash the screen.
+  factory RecipeDetail.forName(String name, {int matchPercent = 80}) {
+    return RecipeDetail(
       name: name,
-      tags: "Suggested recipe",
+      tags: "Recipe",
       time: "20 min",
-      calories: 350,
+      cookTime: "—",
+      calories: 0,
       difficulty: "Medium",
       matchPercent: matchPercent,
-      description: "A recipe suggested from your pantry ingredients.",
-      ingredients: const [
-        RecipeIngredientDetail(name: "Main ingredient", initials: "MI", quantity: "as needed"),
-      ],
-      nutrition: const NutritionInfo(calories: 350, protein: "15 g", carbs: "40 g", fat: "12 g"),
+      sustainabilityTip: "",
+      cuisine: "",
+      ingredients: const [],
+      nutrition: const NutritionInfo(calories: 0, protein: "—", carbs: "—", fat: "—"),
       steps: const [
-        CookingStep(title: "Prep ingredients", instructions: "Gather and prepare all ingredients."),
-        CookingStep(title: "Cook", instructions: "Cook following your usual method."),
-        CookingStep(title: "Serve", instructions: "Plate and serve warm."),
+        CookingStep(
+          title: "Step 1",
+          instructions: "Full step-by-step data isn't available for this entry — cook using your usual method.",
+        ),
       ],
     );
   }

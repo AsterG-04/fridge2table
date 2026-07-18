@@ -156,36 +156,25 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(color: AppColors.darkGreen, shape: BoxShape.circle),
-                alignment: Alignment.center,
-                child: Text(
-                  "${_stepIndex + 1}",
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  step.title,
-                  style: const TextStyle(
-                    fontFamily: "Outfit",
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ),
-            ],
+          Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(color: AppColors.darkGreen, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: Text(
+              "${_stepIndex + 1}",
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
           ),
           const SizedBox(height: 20),
           Text(
             step.instructions,
-            style: const TextStyle(color: AppColors.textGray, fontSize: 14, height: 1.5),
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontSize: 17,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -220,7 +209,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
             child: ElevatedButton.icon(
               onPressed: _next,
               icon: Icon(_isLastStep ? Icons.check : Icons.chevron_right, color: Colors.white, size: 18),
-              label: Text(_isLastStep ? "Finish" : "Next"),
+              label: Text(_isLastStep ? "Finish Cooking" : "Next"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.darkGreen,
                 foregroundColor: Colors.white,

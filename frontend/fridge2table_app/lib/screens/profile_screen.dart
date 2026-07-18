@@ -243,25 +243,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Padding(
               padding: EdgeInsets.only(bottom: 8),
               child: Text("No diet preferences set yet", style: TextStyle(color: AppColors.textGray, fontSize: 12)),
-            ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final tag in _dietTags) _pill(tag, AppColors.chipGreenBg, AppColors.chipGreenText),
-              GestureDetector(
-                onTap: _editPreferences,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppColors.darkGreen.withValues(alpha: 0.2)),
-                  ),
-                  child: const Text("+ Add", style: TextStyle(color: AppColors.darkGreen, fontSize: 11, fontWeight: FontWeight.bold)),
+            )
+          else if (_dietTags.contains("No Restrictions"))
+            Row(
+              children: [
+                _pill("No Restrictions", AppColors.chipGreenBg, AppColors.chipGreenText),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _editPreferences,
+                  child: const Text("Edit", style: TextStyle(color: AppColors.darkGreen, fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
-              ),
-            ],
-          ),
+              ],
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final tag in _dietTags) _pill(tag, AppColors.chipGreenBg, AppColors.chipGreenText),
+                GestureDetector(
+                  onTap: _editPreferences,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: AppColors.darkGreen.withValues(alpha: 0.2)),
+                    ),
+                    child: const Text("+ Add", style: TextStyle(color: AppColors.darkGreen, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -298,25 +310,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: EdgeInsets.only(bottom: 8),
               child: Text("No allergies set yet", style: TextStyle(color: AppColors.textGray, fontSize: 12)),
             )
-          else
+          else if (_allergyNames.contains("No Allergies"))
+            Row(
+              children: [
+                const Icon(Icons.check_circle, size: 16, color: AppColors.chipGreenText),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text("No known food allergies", style: TextStyle(color: AppColors.textDark, fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            )
+          else ...[
             for (final name in _allergyNames) ...[
               _allergyRow(name, allergySeverities[name] ?? "Common"),
               const SizedBox(height: 10),
             ],
-          const Divider(color: AppColors.borderGreen, height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.textGray),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Recipes containing these will show a warning before you cook.",
-                  style: const TextStyle(color: AppColors.textGray, fontSize: 11),
+            const Divider(color: AppColors.borderGreen, height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.textGray),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Recipes containing these will show a warning before you cook.",
+                    style: const TextStyle(color: AppColors.textGray, fontSize: 11),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );

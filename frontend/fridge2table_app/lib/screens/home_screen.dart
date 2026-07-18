@@ -8,6 +8,7 @@ import 'ai_camera_screen.dart';
 import 'add_ingredient_screen.dart';
 import 'expiry_monitor_screen.dart';
 import 'inventory_screen.dart';
+import 'notifications_screen.dart';
 import 'recipe_screen.dart';
 import 'waste_control_screen.dart';
 
@@ -182,32 +183,38 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Row(
                 children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.notifications_outlined,
-                            color: Colors.white, size: 18),
-                      ),
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE9A820),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
                             shape: BoxShape.circle,
                           ),
+                          child: const Icon(Icons.notifications_outlined,
+                              color: Colors.white, size: 18),
                         ),
-                      ),
-                    ],
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFE9A820),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Container(
