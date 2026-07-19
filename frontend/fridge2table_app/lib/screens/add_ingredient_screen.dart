@@ -44,8 +44,8 @@ class _AddIngredientScreenState
     "Dairy",
     "Meat & Seafood",
     "Grains & Bread",
+    "Spices & Condiments",
     "Beverages",
-    "Condiments",
     "Snacks",
     "Other",
   ];

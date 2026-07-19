@@ -388,18 +388,57 @@ class _RecipeScreenState extends State<RecipeScreen> {
           emptySubtitle: 'Try a different search or filter',
           builder: (context, items) {
             final filtered = _applyFilters(items);
-            return ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              itemCount: filtered.length,
-              itemBuilder: (context, index) {
-                final recipe = filtered[index];
-                final gradient = _gradients[index % _gradients.length];
-                return _buildRecipeCard(recipe, gradient);
-              },
+            final maxScore = filtered.isEmpty
+                ? 0
+                : filtered
+                    .map((r) => (r['match_score'] ?? 0) as num)
+                    .reduce((a, b) => a > b ? a : b);
+            final showLowMatchTip = filtered.isNotEmpty && maxScore < 50;
+
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final recipe = filtered[index];
+                      final gradient = _gradients[index % _gradients.length];
+                      return _buildRecipeCard(recipe, gradient);
+                    },
+                  ),
+                ),
+                if (showLowMatchTip) _buildLowMatchTip(),
+              ],
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildLowMatchTip() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+      color: const Color(0xFFF5F8F6),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF9E7),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Text(
+          "Add more ingredients to your pantry for better recipe matches 🛒",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF966200),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 

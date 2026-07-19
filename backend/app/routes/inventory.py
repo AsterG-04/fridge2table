@@ -189,7 +189,7 @@ def get_recipes(
 ):
     ingredients = get_ingredients(db)
     results = _matched_recipes([item.name for item in ingredients])
-    return results[:5]
+    return results[:10]
 
 
 @router.get("/ai-recommendation")
