@@ -6,6 +6,12 @@ class SupabaseConfig {
 
   static const String ingredientsTable = "ingredients";
 
+  /// Deep link the Google OAuth flow redirects back to. Must match the
+  /// scheme/host registered in AndroidManifest.xml and be added as a
+  /// Redirect URL in Supabase Auth settings once Google sign-in is
+  /// configured there.
+  static const String oauthRedirect = "fridge2table://login-callback/";
+
   static bool get isConfigured =>
       url != "https://your-project.supabase.co" && anonKey != "your-anon-key";
 }

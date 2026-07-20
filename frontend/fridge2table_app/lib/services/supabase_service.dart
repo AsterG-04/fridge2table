@@ -15,6 +15,17 @@ import 'api_service.dart';
 class SupabaseService {
   static SupabaseClient get _client => Supabase.instance.client;
 
+  /// Set right before launching the Google OAuth flow and cleared once
+  /// handled. signInWithOAuth() only launches the browser — it resolves
+  /// long before the user finishes authenticating, so the app can't tell
+  /// from that call alone when sign-in actually completes. The real
+  /// completion arrives later as a `signedIn` event on
+  /// `auth.onAuthStateChange` (via the deep-link redirect), which a
+  /// password sign-in *also* emits. This flag lets the app-root listener
+  /// in main.dart tell those two cases apart and only act on the OAuth one
+  /// — password/sign-up flows already handle their own navigation directly.
+  static bool oauthInProgress = false;
+
   static Future<void> initialize() async {
     if (!SupabaseConfig.isConfigured) return;
     await Supabase.initialize(

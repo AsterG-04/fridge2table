@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config/supabase_config.dart';
 import '../constants/colors.dart';
 import '../data/allergy_severities.dart';
 import '../services/api_service.dart';
@@ -7,6 +9,7 @@ import '../services/auth_service.dart';
 import 'cloud_sync_screen.dart';
 import 'diet_preferences_screen.dart';
 import 'settings_screen.dart';
+import 'signin_screen.dart';
 import 'statistics_screen.dart';
 import 'waste_control_screen.dart';
 
@@ -94,12 +97,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              _performLogOut();
             },
             child: const Text("Log Out", style: TextStyle(color: Color(0xFFC0392B))),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _performLogOut() async {
+    if (SupabaseConfig.isConfigured) {
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {
+        // Best-effort — still clear the local session below even if the
+        // network sign-out call fails (e.g. offline).
+      }
+    }
+    await AuthService.clearSession();
+
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SignInScreen()),
+      (route) => false,
     );
   }
 

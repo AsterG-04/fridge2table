@@ -1,8 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'config/supabase_config.dart';
 import 'constants/colors.dart';
+import 'services/auth_service.dart';
 import 'services/supabase_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/inventory_screen.dart';
@@ -22,14 +25,61 @@ void main() async {
 }
 
 
-class Fridge2TableApp extends StatelessWidget {
+class Fridge2TableApp extends StatefulWidget {
 
   const Fridge2TableApp({super.key});
+
+  @override
+  State<Fridge2TableApp> createState() => _Fridge2TableAppState();
+}
+
+
+class _Fridge2TableAppState extends State<Fridge2TableApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  StreamSubscription<AuthState>? _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // Google OAuth completes asynchronously via a deep-link redirect, well
+    // after signInWithOAuth() itself returns (that call just opens the
+    // browser). This is the one place that catches the redirect regardless
+    // of which screen (Sign In or Create Account) launched it. Password
+    // sign-in/sign-up handle their own navigation directly since they can
+    // just await the result — SupabaseService.oauthInProgress keeps this
+    // listener from also reacting to *their* signedIn events.
+    if (SupabaseConfig.isConfigured) {
+      _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+        if (data.event != AuthChangeEvent.signedIn || data.session == null) return;
+        if (!SupabaseService.oauthInProgress) return;
+        SupabaseService.oauthInProgress = false;
+
+        final user = data.session!.user;
+        final email = user.email ?? "";
+        final name = (user.userMetadata?["name"] as String?) ??
+            (email.contains("@") ? email.split("@").first : "Google user");
+        await AuthService.cacheIdentity(name: name, email: email);
+        await SupabaseService.resolveConflicts();
+
+        _navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainScreen()),
+          (route) => false,
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
 
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
       title: "Fridge2Table",
       theme: ThemeData(

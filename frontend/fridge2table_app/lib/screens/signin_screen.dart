@@ -1,9 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config/supabase_config.dart';
 import '../constants/colors.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
+import '../services/supabase_service.dart';
 import 'create_account_screen.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -17,6 +20,14 @@ class _SignInScreenState extends State<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _signIn() async {
     final email = _emailController.text.trim();
@@ -27,29 +38,69 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
 
-    if (!await AuthService.hasAccount()) {
-      _showError("No account found — create one first");
+    if (!SupabaseConfig.isConfigured) {
+      _showError("Cloud sign-in isn't configured yet");
       return;
     }
 
-    final valid = await AuthService.checkCredentials(email, password);
-    if (!valid) {
-      _showError("Incorrect email or password");
-      return;
-    }
+    setState(() => _submitting = true);
 
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const MainScreen()),
-    );
+    try {
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = response.user;
+      if (user == null) {
+        _showError("Incorrect email or password");
+        return;
+      }
+
+      final name = (user.userMetadata?["name"] as String?) ??
+          await AuthService.getName() ??
+          email.split("@").first;
+      await AuthService.cacheIdentity(name: name, email: email);
+
+      // Loads the user's cloud data now that they're authenticated, rather
+      // than waiting for MainScreen's own background sync to kick in.
+      await SupabaseService.resolveConflicts();
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainScreen()),
+      );
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } catch (e) {
+      _showError("Something went wrong: $e");
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
-  void _continueWithGoogle() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const MainScreen()),
-    );
+  Future<void> _continueWithGoogle() async {
+    if (!SupabaseConfig.isConfigured) {
+      _showError("Cloud sign-in isn't configured yet");
+      return;
+    }
+    try {
+      SupabaseService.oauthInProgress = true;
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: SupabaseConfig.oauthRedirect,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      // The OAuth flow finishes in the browser/app-link callback; the
+      // app-root listener in main.dart takes over from there.
+    } on AuthException catch (e) {
+      SupabaseService.oauthInProgress = false;
+      _showError(e.message);
+    } catch (e) {
+      SupabaseService.oauthInProgress = false;
+      _showError("Google sign-in failed: $e");
+    }
   }
 
   void _showError(String message) {
@@ -119,22 +170,33 @@ class _SignInScreenState extends State<SignInScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _signIn,
+                      onPressed: _submitting ? null : _signIn,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.darkGreen,
+                        disabledBackgroundColor:
+                            AppColors.darkGreen.withValues(alpha: 0.5),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        "Sign In",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _submitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              "Sign In",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
 

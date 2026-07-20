@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config/supabase_config.dart';
 import '../constants/colors.dart';
 import '../services/auth_service.dart';
+import '../services/supabase_service.dart';
 import 'diet_preferences_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -21,6 +26,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreedToTerms = false;
+  bool _submitting = false;
 
   Future<void> _continue() async {
     final name = _nameController.text.trim();
@@ -40,14 +46,76 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       _showError("Passwords don't match");
       return;
     }
+    if (!SupabaseConfig.isConfigured) {
+      _showError("Cloud account creation isn't configured yet");
+      return;
+    }
 
-    await AuthService.saveAccount(name: name, email: email, password: password);
+    setState(() => _submitting = true);
 
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const DietPreferencesScreen()),
-    );
+    try {
+      final response = await Supabase.instance.client.auth.signUp(
+        email: email,
+        password: password,
+        data: {"name": name},
+      );
+
+      if (response.user == null) {
+        _showError("Could not create account. Please try again.");
+        return;
+      }
+
+      await AuthService.cacheIdentity(name: name, email: email);
+
+      if (response.session == null) {
+        // Email confirmation is required before the user can sign in —
+        // there's no active session yet, so send them to Sign In instead
+        // of straight into the app.
+        if (!mounted) return;
+        _showError("Account created! Check your email to confirm it, then sign in.");
+        Navigator.pop(context);
+        return;
+      }
+
+      // Signed up with an active session — pull down any existing cloud
+      // data for this account before landing on preferences setup.
+      unawaited(SupabaseService.resolveConflicts());
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DietPreferencesScreen()),
+      );
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } catch (e) {
+      _showError("Something went wrong: $e");
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _continueWithGoogle() async {
+    if (!SupabaseConfig.isConfigured) {
+      _showError("Cloud sign-in isn't configured yet");
+      return;
+    }
+    try {
+      SupabaseService.oauthInProgress = true;
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: SupabaseConfig.oauthRedirect,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      // The OAuth flow finishes in the browser/app-link callback; the
+      // app-root listener in main.dart takes over from there.
+    } on AuthException catch (e) {
+      SupabaseService.oauthInProgress = false;
+      _showError(e.message);
+    } catch (e) {
+      SupabaseService.oauthInProgress = false;
+      _showError("Google sign-in failed: $e");
+    }
   }
 
   void _showError(String message) {
@@ -197,7 +265,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _agreedToTerms ? _continue : null,
+                      onPressed: (_agreedToTerms && !_submitting) ? _continue : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.darkGreen,
                         disabledBackgroundColor:
@@ -207,14 +275,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        "Create Account",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _submitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              "Create Account",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
 
@@ -246,7 +323,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: _continue,
+                      onPressed: _continueWithGoogle,
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         side: BorderSide(

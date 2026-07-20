@@ -1,44 +1,27 @@
-import 'dart:convert';
-
-import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Local cache of the signed-in user's identity and preferences.
+/// Supabase Auth is the source of truth for credentials — this only mirrors
+/// display data (name/email) locally so Profile/Statistics work offline,
+/// plus pantry-unrelated preferences (diet, allergies) that live purely on
+/// this device.
 class AuthService {
   static const _kName = "auth_name";
   static const _kEmail = "auth_email";
-  static const _kPasswordHash = "auth_password_hash";
   static const _kCreatedAt = "auth_created_at";
   static const _kDietPreferences = "auth_diet_preferences";
   static const _kAllergies = "auth_allergies";
 
-  static String _hash(String value) =>
-      sha256.convert(utf8.encode(value)).toString();
-
-  static Future<void> saveAccount({
+  static Future<void> cacheIdentity({
     required String name,
     required String email,
-    required String password,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kName, name.trim());
     await prefs.setString(_kEmail, email.trim().toLowerCase());
-    await prefs.setString(_kPasswordHash, _hash(password));
     if (!prefs.containsKey(_kCreatedAt)) {
       await prefs.setString(_kCreatedAt, DateTime.now().toIso8601String());
     }
-  }
-
-  static Future<bool> checkCredentials(String email, String password) async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedEmail = prefs.getString(_kEmail);
-    final savedHash = prefs.getString(_kPasswordHash);
-    if (savedEmail == null || savedHash == null) return false;
-    return savedEmail == email.trim().toLowerCase() && savedHash == _hash(password);
-  }
-
-  static Future<bool> hasAccount() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey(_kEmail);
   }
 
   static Future<void> saveDietPreferences(List<String> preferences) async {
@@ -75,5 +58,16 @@ class AuthService {
   static Future<List<String>> getAllergies() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getStringList(_kAllergies) ?? [];
+  }
+
+  /// Clears the locally cached identity (name/email/created at) on logout.
+  /// Diet preferences and allergies are left in place — they're pantry
+  /// profile settings, not auth session state, and this app doesn't
+  /// support switching between multiple local accounts.
+  static Future<void> clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kName);
+    await prefs.remove(_kEmail);
+    await prefs.remove(_kCreatedAt);
   }
 }
