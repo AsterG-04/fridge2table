@@ -25,6 +25,13 @@ class Ingredient(Base):
 
     location = Column(String)
 
+    # The Supabase user this ingredient belongs to. Nullable only so rows
+    # created before per-user scoping was added don't break — those legacy
+    # rows are treated as orphaned (see migrate_add_user_id.py) and are
+    # never returned to any user, since there's no reliable way to know
+    # which account they originally belonged to.
+    user_id = Column(String, nullable=True, index=True)
+
     updated_at = Column(
         DateTime(timezone=True),
         nullable=False,

@@ -17,21 +17,33 @@ class CookingConfirmScreen extends StatefulWidget {
 
 class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
   int _selected = 0; // 0 = by measurement, 1 = by estimate
+  bool _submitting = false;
 
   Future<void> _confirm() async {
+    if (_submitting) return;
+
     if (_selected == 0) {
-      final deductions = await RecipeCookingService.deduct(widget.recipe, {});
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => RecipeCompleteScreen(
-            recipe: widget.recipe,
-            deductionSummary: "Cooked by measurement — full deduction",
-            deductions: deductions,
+      setState(() => _submitting = true);
+      try {
+        // Deducts each ingredient from the pantry via a separate API call —
+        // on a real network (vs an emulator's near-instant loopback) this
+        // can take a couple of seconds, so the button shows a spinner
+        // rather than appearing to just do nothing.
+        final deductions = await RecipeCookingService.deduct(widget.recipe, {});
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RecipeCompleteScreen(
+              recipe: widget.recipe,
+              deductionSummary: "Cooked by measurement — full deduction",
+              deductions: deductions,
+            ),
           ),
-        ),
-      );
+        );
+      } finally {
+        if (mounted) setState(() => _submitting = false);
+      }
     } else {
       Navigator.pushReplacement(
         context,
@@ -226,16 +238,23 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: _confirm,
+          onPressed: _submitting ? null : _confirm,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.darkGreen,
+            disabledBackgroundColor: AppColors.darkGreen.withValues(alpha: 0.5),
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          child: const Text(
-            "Confirm & Update Pantry",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+          child: _submitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text(
+                  "Confirm & Update Pantry",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
         ),
       ),
     );

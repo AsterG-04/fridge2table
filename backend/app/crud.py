@@ -2,14 +2,15 @@ from sqlalchemy.orm import Session
 from .models import Ingredient
 
 
-def create_ingredient(db: Session, ingredient):
+def create_ingredient(db: Session, ingredient, user_id: str):
     db_item = Ingredient(
         name=ingredient.name,
         quantity=ingredient.quantity,
         unit=ingredient.unit,
         expiry_date=ingredient.expiry_date,
         category=ingredient.category,
-        location=ingredient.location
+        location=ingredient.location,
+        user_id=user_id,
     )
 
     db.add(db_item)
@@ -19,12 +20,14 @@ def create_ingredient(db: Session, ingredient):
     return db_item
 
 
-def get_ingredients(db: Session):
-    return db.query(Ingredient).all()
+def get_ingredients(db: Session, user_id: str):
+    return db.query(Ingredient).filter(Ingredient.user_id == user_id).all()
 
-def update_ingredient(db: Session, ingredient_id: int, ingredient):
+
+def update_ingredient(db: Session, ingredient_id: int, ingredient, user_id: str):
     db_item = db.query(Ingredient).filter(
-        Ingredient.id == ingredient_id
+        Ingredient.id == ingredient_id,
+        Ingredient.user_id == user_id,
     ).first()
 
     if not db_item:
@@ -43,9 +46,10 @@ def update_ingredient(db: Session, ingredient_id: int, ingredient):
     return db_item
 
 
-def delete_ingredient(db: Session, ingredient_id: int):
+def delete_ingredient(db: Session, ingredient_id: int, user_id: str):
     db_item = db.query(Ingredient).filter(
-        Ingredient.id == ingredient_id
+        Ingredient.id == ingredient_id,
+        Ingredient.user_id == user_id,
     ).first()
 
     if not db_item:

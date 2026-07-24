@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: fridge2table-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # Supabase Postgres connection string (use the Session Pooler string
+      # from Supabase's dashboard, not the direct connection -- Render's
+      # network is IPv4 and the pooler is the IPv4-compatible option).
+      # Local dev leaves this unset and falls back to SQLite.
+      - key: DATABASE_URL
+        sync: false
+      # Optional -- only needed for the AI-picked recipe recommendation
+      # endpoint. The app falls back to a non-AI pick when this is empty.
+      - key: OPENROUTER_API_KEY
+        sync: false

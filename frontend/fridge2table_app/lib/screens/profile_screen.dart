@@ -4,8 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 import '../constants/colors.dart';
 import '../data/allergy_severities.dart';
+import '../models/cooked_history_entry.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/saved_recipes_store.dart';
 import 'cloud_sync_screen.dart';
 import 'diet_preferences_screen.dart';
 import 'settings_screen.dart';
@@ -29,9 +31,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<String> _dietTags = [];
   List<String> _allergyNames = [];
 
+  bool _historyLoaded = false;
+  int _ecoScore = 0;
+  int _badgeCount = 0;
+  int _rescuedCount = 0;
+
   static const List<String> _months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
+  ];
+
+  // Milestone badges, keyed by how many meals cooked unlocks each one —
+  // mirrors CookedHistoryStore.badgeThresholds so the count shown in the
+  // stats row and the badges actually listed below always agree.
+  static const List<(int, String, IconData)> _badgeCatalog = [
+    (1, "First Rescue", Icons.emoji_events_outlined),
+    (5, "Home Cook", Icons.local_fire_department_outlined),
+    (10, "Waste Warrior", Icons.eco_outlined),
+    (25, "Kitchen Hero", Icons.military_tech_outlined),
   ];
 
   @override
@@ -39,6 +56,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadItemCount();
     _loadProfile();
+    _loadHistoryStats();
+  }
+
+  Future<void> _loadHistoryStats() async {
+    debugPrint("[ProfileScreen] _loadHistoryStats() starting");
+    await CookedHistoryStore.load();
+    if (!mounted) return;
+    setState(() {
+      _ecoScore = CookedHistoryStore.ecoScore;
+      _badgeCount = CookedHistoryStore.badgeCount;
+      _rescuedCount = CookedHistoryStore.totalMealsCooked;
+      _historyLoaded = true;
+    });
+    debugPrint(
+      "[ProfileScreen] _loadHistoryStats() done — ecoScore=$_ecoScore "
+      "badgeCount=$_badgeCount rescuedCount=$_rescuedCount",
+    );
   }
 
   Future<void> _loadItemCount() async {
@@ -116,6 +150,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
     await AuthService.clearSession();
+    CookedHistoryStore.reset();
+    SavedRecipesStore.reset();
 
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -138,6 +174,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   _statsRow(),
+                  const SizedBox(height: 16),
+                  _badgesCard(),
                   const SizedBox(height: 16),
                   _dietPreferencesCard(),
                   const SizedBox(height: 16),
@@ -224,9 +262,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         children: [
           Expanded(child: _statItem(_itemCount?.toString() ?? "—", "Items")),
-          Expanded(child: _statItem("78", "Eco Score")),
-          Expanded(child: _statItem("3", "Badges")),
-          Expanded(child: _statItem("11", "Rescued")),
+          Expanded(child: _statItem(_historyLoaded ? "$_ecoScore" : "—", "Eco Score")),
+          Expanded(child: _statItem(_historyLoaded ? "$_badgeCount" : "—", "Badges")),
+          Expanded(child: _statItem(_historyLoaded ? "$_rescuedCount" : "—", "Rescued")),
         ],
       ),
     );
@@ -379,6 +417,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Text(severity, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
         ),
       ],
+    );
+  }
+
+  Widget _badgesCard() {
+    final earned = _historyLoaded
+        ? _badgeCatalog.where((b) => _rescuedCount >= b.$1).toList()
+        : const <(int, String, IconData)>[];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Badges", style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          if (_historyLoaded && earned.isEmpty)
+            const Text(
+              "No badges yet — start cooking to earn your first one!",
+              style: TextStyle(color: AppColors.textGray, fontSize: 12),
+            )
+          else if (earned.isNotEmpty)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [for (final b in earned) _badgePill(b.$2, b.$3)],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _badgePill(String name, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(color: AppColors.chipGreenBg, borderRadius: BorderRadius.circular(999)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.chipGreenText),
+          const SizedBox(width: 6),
+          Text(name, style: const TextStyle(color: AppColors.chipGreenText, fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 

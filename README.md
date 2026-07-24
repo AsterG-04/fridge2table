@@ -72,11 +72,23 @@ cd E:\fridge2table\frontend\fridge2table_app
 flutter run
 ```
 
-**Important — `baseUrl` in `lib/services/api_service.dart` must match how you're testing:**
-- Android **emulator** → `http://10.0.2.2:8000` (special alias to the host machine's localhost)
-- Real **physical device** → your laptop's actual LAN IP (e.g. `http://192.168.1.116:8000`), with both devices on the same Wi-Fi, backend bound to `0.0.0.0`, and Windows Firewall allowing inbound TCP on port 8000
+**Backend URL — handled automatically for the emulator, one-time setup for a real device.**
 
-Both the backend and frontend must be running at the same time.
+`lib/config/api_config.dart` auto-detects at startup whether the app is running on the Android emulator or real hardware (via `device_info_plus`) and picks the right address — no manual editing needed for the emulator.
+
+For a **real physical device over USB** (recommended — no network/firewall config needed):
+```powershell
+adb reverse tcp:8000 tcp:8000
+```
+Run this once per USB connection (after plugging in / after `adb` restarts) — it forwards the device's own `localhost:8000` to your dev machine's, which is exactly what `api_config.dart` expects to use for a detected real device.
+
+For a real device over **Wi-Fi** (no cable), pass your dev machine's LAN IP explicitly instead:
+```powershell
+flutter run --dart-define=API_BASE_URL=http://192.168.1.116:8000
+```
+Find your LAN IP with `ipconfig`. The backend must be bound to `0.0.0.0` (see below) and Windows Firewall must allow inbound TCP on port 8000.
+
+Both the backend and frontend must be running at the same time. `E:\fridge2table\start_app.ps1` starts both together for local dev (see its `-ApiBaseUrl` param for the Wi-Fi case).
 
 ## API Endpoints
 

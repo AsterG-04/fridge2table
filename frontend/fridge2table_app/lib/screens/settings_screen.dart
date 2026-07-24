@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../services/api_service.dart';
 import 'cloud_sync_screen.dart';
+import 'privacy_screen.dart';
+import 'terms_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -26,6 +28,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _openCloudSync() {
     Navigator.push(context, MaterialPageRoute(builder: (_) => const CloudSyncScreen()));
+  }
+
+  void _openTerms() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen()));
+  }
+
+  void _openPrivacy() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen()));
   }
 
   void _showSnack(String message) {
@@ -104,7 +114,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: "Data & Privacy",
                     children: [
                       _navRow("Cloud Sync", "Auto", _openCloudSync),
-                      _navRow("Privacy Policy", null, () => _showSnack("Privacy Policy coming soon")),
+                      _navRow("Terms of Service", null, _openTerms),
+                      _navRow("Privacy Policy", null, _openPrivacy),
                       _navRow(
                         "Clear Data",
                         null,

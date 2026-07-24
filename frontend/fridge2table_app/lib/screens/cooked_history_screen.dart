@@ -68,7 +68,7 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
                     const Padding(
                       padding: EdgeInsets.only(top: 40),
                       child: Center(
-                        child: Text("Nothing cooked yet", style: TextStyle(color: AppColors.textGray)),
+                        child: Text("No cooked recipes yet", style: TextStyle(color: AppColors.textGray)),
                       ),
                     )
                   else

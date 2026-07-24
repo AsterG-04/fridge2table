@@ -9,6 +9,8 @@ import '../constants/colors.dart';
 import '../services/auth_service.dart';
 import '../services/supabase_service.dart';
 import 'diet_preferences_screen.dart';
+import 'privacy_screen.dart';
+import 'terms_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -52,12 +54,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     }
 
     setState(() => _submitting = true);
+    SupabaseService.suppressRootAuthListener = true;
 
     try {
       final response = await Supabase.instance.client.auth.signUp(
         email: email,
         password: password,
         data: {"name": name},
+        emailRedirectTo: SupabaseConfig.oauthRedirect,
       );
 
       if (response.user == null) {
@@ -70,9 +74,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       if (response.session == null) {
         // Email confirmation is required before the user can sign in —
         // there's no active session yet, so send them to Sign In instead
-        // of straight into the app.
+        // of straight into the app. A SnackBar is too easy to miss here,
+        // so this is a blocking dialog the user has to acknowledge.
         if (!mounted) return;
-        _showError("Account created! Check your email to confirm it, then sign in.");
+        await _showCheckEmailDialog(email);
+        if (!mounted) return;
         Navigator.pop(context);
         return;
       }
@@ -91,29 +97,67 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     } catch (e) {
       _showError("Something went wrong: $e");
     } finally {
+      SupabaseService.suppressRootAuthListener = false;
       if (mounted) setState(() => _submitting = false);
     }
   }
 
+  Future<void> _showCheckEmailDialog(String email) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.mark_email_unread_outlined, color: AppColors.darkGreen, size: 32),
+        title: const Text("Check your email"),
+        content: Text(
+          "We've sent a confirmation link to $email. Open it, then come back "
+          "and sign in.",
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.darkGreen,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text("Got it", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _continueWithGoogle() async {
+    debugPrint(
+      "[GoogleAuth] Sign up with Google tapped (CreateAccountScreen). "
+      "isConfigured=${SupabaseConfig.isConfigured}",
+    );
     if (!SupabaseConfig.isConfigured) {
       _showError("Cloud sign-in isn't configured yet");
       return;
     }
+    debugPrint("[GoogleAuth] Launching signInWithOAuth, redirectTo=${SupabaseConfig.oauthRedirect}");
     try {
-      SupabaseService.oauthInProgress = true;
-      await Supabase.instance.client.auth.signInWithOAuth(
+      final launched = await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: SupabaseConfig.oauthRedirect,
-        authScreenLaunchMode: LaunchMode.externalApplication,
+        authScreenLaunchMode: LaunchMode.inAppWebView,
       );
-      // The OAuth flow finishes in the browser/app-link callback; the
-      // app-root listener in main.dart takes over from there.
+      debugPrint("[GoogleAuth] signInWithOAuth returned: $launched");
+      if (!launched) {
+        _showError("Couldn't open Google sign-in. Please try again.");
+      }
+      // On success the OAuth flow finishes in the browser/app-link
+      // callback; the app-root listener in main.dart takes over from there.
     } on AuthException catch (e) {
-      SupabaseService.oauthInProgress = false;
+      debugPrint("[GoogleAuth] AuthException: ${e.message} (code: ${e.code})");
       _showError(e.message);
     } catch (e) {
-      SupabaseService.oauthInProgress = false;
+      debugPrint("[GoogleAuth] Unexpected error: $e");
       _showError("Google sign-in failed: $e");
     }
   }
@@ -240,18 +284,26 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                 text: "Terms of Service",
                                 style: const TextStyle(
                                   color: AppColors.darkGreen,
+                                  decoration: TextDecoration.underline,
                                 ),
                                 recognizer: TapGestureRecognizer()
-                                  ..onTap = () {},
+                                  ..onTap = () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (_) => const TermsScreen()),
+                                      ),
                               ),
                               const TextSpan(text: " and "),
                               TextSpan(
                                 text: "Privacy Policy",
                                 style: const TextStyle(
                                   color: AppColors.darkGreen,
+                                  decoration: TextDecoration.underline,
                                 ),
                                 recognizer: TapGestureRecognizer()
-                                  ..onTap = () {},
+                                  ..onTap = () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+                                      ),
                               ),
                             ],
                           ),
@@ -376,24 +428,36 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
                   const SizedBox(height: 24),
 
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontSize: 14),
-                      children: [
-                        const TextSpan(
-                          text: "Already have an account? ",
-                          style: TextStyle(color: AppColors.textGray),
-                        ),
-                        TextSpan(
-                          text: "Sign In",
-                          style: const TextStyle(
-                            color: AppColors.darkGreen,
-                            fontWeight: FontWeight.bold,
+                  Center(
+                    child: GestureDetector(
+                      // See the matching fix in signin_screen.dart — a bare
+                      // TapGestureRecognizer only covers the exact glyph
+                      // pixels of "Sign In", easy to miss with a real
+                      // fingertip. This gives the whole line a much larger
+                      // tap area.
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => Navigator.pop(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: RichText(
+                          text: const TextSpan(
+                            style: TextStyle(fontSize: 14),
+                            children: [
+                              TextSpan(
+                                text: "Already have an account? ",
+                                style: TextStyle(color: AppColors.textGray),
+                              ),
+                              TextSpan(
+                                text: "Sign In",
+                                style: TextStyle(
+                                  color: AppColors.darkGreen,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () => Navigator.pop(context),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ],

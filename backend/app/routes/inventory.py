@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import date, datetime
 import json
@@ -36,11 +36,35 @@ RECIPES_PATH = os.path.join(
 )
 
 
+# The AI ingredient classifier's class names don't always spell things the
+# same way the recipe dataset does -- these would otherwise silently never
+# match even when a relevant recipe exists (found while auditing recipe
+# data quality: "sweetpotato" vs "sweet potato", "yoghurt" vs "yogurt",
+# "capsicum" vs "bell pepper" -- same vegetable, different regional name).
+_SYNONYMS = {
+    "sweetpotato": "sweet potato",
+    "yoghurt": "yogurt",
+    "capsicum": "bell pepper",
+    "raddish": "radish",
+    "chilli pepper": "chili",
+    "jalepeno": "chili",
+    "corn": "sweetcorn",
+    "oat milk": "milk",
+    "sour milk": "milk",
+    "soy milk": "milk",
+    "sour cream": "cream",
+    "satsuma": "orange",
+}
+
+
 def _normalize(word: str) -> str:
     """Lowercases and lightly de-pluralizes an ingredient name so pantry
     entries like "Eggs" or "Tomatoes" match recipe ingredients like "egg"
-    or "tomato" without needing an exact-plural match."""
+    or "tomato" without needing an exact-plural match, and maps known
+    alternate spellings (see _SYNONYMS) to one canonical form."""
     w = word.strip().lower()
+    if w in _SYNONYMS:
+        w = _SYNONYMS[w]
     if w.endswith("ies") and len(w) > 4:
         return w[:-3] + "y"
     if w.endswith("es") and len(w) > 4:
@@ -65,23 +89,26 @@ with open(RECIPES_PATH, "r", encoding="utf-8") as f:
 @router.post("/ingredient", response_model=IngredientResponse)
 def add_ingredient(
     ingredient: IngredientCreate,
+    user_id: str,
     db: Session = Depends(get_db)
 ):
-    return create_ingredient(db, ingredient)
+    return create_ingredient(db, ingredient, user_id)
 
 
 @router.get("/inventory", response_model=list[IngredientResponse])
 def get_inventory(
+    user_id: str,
     db: Session = Depends(get_db)
 ):
-    return get_ingredients(db)
+    return get_ingredients(db, user_id)
 
 
 @router.get("/expiry-status")
 def get_expiry_status(
+    user_id: str,
     db: Session = Depends(get_db)
 ):
-    ingredients = get_ingredients(db)
+    ingredients = get_ingredients(db, user_id)
 
     today = date.today()
 
@@ -129,20 +156,42 @@ def get_expiry_status(
 def edit_ingredient(
     ingredient_id: int,
     ingredient: IngredientCreate,
+    user_id: str,
     db: Session = Depends(get_db)
 ):
-    return update_ingredient(db, ingredient_id, ingredient)
+    updated = update_ingredient(db, ingredient_id, ingredient, user_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Ingredient not found")
+    return updated
 
 
 @router.delete("/ingredient/{ingredient_id}")
 def remove_ingredient(
     ingredient_id: int,
+    user_id: str,
     db: Session = Depends(get_db)
 ):
-    return delete_ingredient(db, ingredient_id)
+    deleted = delete_ingredient(db, ingredient_id, user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Ingredient not found")
+    return deleted
+
+
+# match_score is scaled by the *recipe's* ingredient count, so a small
+# recipe (4-5 ingredients) can clear a percentage-only bar off a single
+# shared generic ingredient like garlic or onion -- requiring at least 2
+# actual matches alongside the percentage bar is what actually filters out
+# "technically matches, not actually relevant" recommendations.
+MIN_MATCH_SCORE = 20
+MIN_MATCH_COUNT = 2
+
+RECIPES_RETURNED = 25
 
 
 def _matched_recipes(ingredient_names: list[str]):
+    # Matching is exact-string equality on normalized (lowercased,
+    # de-pluralized) names via set intersection -- not substring/fuzzy
+    # matching, so e.g. "pea" cannot match inside "peanut".
     user_ingredients = set(_normalize(name) for name in ingredient_names)
 
     if not user_ingredients:
@@ -167,6 +216,9 @@ def _matched_recipes(ingredient_names: list[str]):
             len(matches) / len(recipe_ingredients) * 100
         )
 
+        if score < MIN_MATCH_SCORE or len(matches) < MIN_MATCH_COUNT:
+            continue
+
         # Full recipe (steps, nutrition, cook_time, etc.) plus match info,
         # so Recipe Detail can render real data without a second lookup.
         results.append({
@@ -185,18 +237,20 @@ def _matched_recipes(ingredient_names: list[str]):
 
 @router.get("/recipes")
 def get_recipes(
+    user_id: str,
     db: Session = Depends(get_db)
 ):
-    ingredients = get_ingredients(db)
+    ingredients = get_ingredients(db, user_id)
     results = _matched_recipes([item.name for item in ingredients])
-    return results[:10]
+    return results[:RECIPES_RETURNED]
 
 
 @router.get("/ai-recommendation")
 def get_ai_recommendation(
+    user_id: str,
     db: Session = Depends(get_db)
 ):
-    ingredients = get_ingredients(db)
+    ingredients = get_ingredients(db, user_id)
     ingredient_names = [item.name for item in ingredients]
 
     candidates = _matched_recipes(ingredient_names)[:10]

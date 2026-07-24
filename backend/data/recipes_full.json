@@ -877,7 +877,9 @@
         "fat": "24g"
       },
       "sustainability_tip": "Save pasta water — its starch is great for thickening sauces",
-      "diet_tags": [],
+      "diet_tags": [
+        "High Protein"
+      ],
       "cuisine": "Italian",
       "id": 27
     },
@@ -2122,7 +2124,9 @@
         "fat": "20g"
       },
       "sustainability_tip": "Use canned pineapple in juice rather than syrup to reduce added sugar waste",
-      "diet_tags": [],
+      "diet_tags": [
+        "High Protein"
+      ],
       "cuisine": "Chinese",
       "id": 65
     },
@@ -2377,7 +2381,9 @@
         "fat": "12g"
       },
       "sustainability_tip": "Fresh udon freezes well — buy in bulk to reduce packaging trips",
-      "diet_tags": [],
+      "diet_tags": [
+        "High Protein"
+      ],
       "cuisine": "Japanese",
       "id": 73
     },
@@ -3543,6 +3549,437 @@
       ],
       "cuisine": "Western",
       "id": 108
+    },
+    {
+      "name": "Garlic Butter Asparagus",
+      "ingredients": [
+        "asparagus",
+        "butter",
+        "garlic",
+        "lemon",
+        "salt"
+      ],
+      "steps": [
+        "Trim the woody ends off the asparagus spears",
+        "Melt butter in a pan with minced garlic over medium heat",
+        "Add asparagus and saute until just tender, 5-7 minutes",
+        "Squeeze lemon juice over the top and season with salt"
+      ],
+      "prep_time": "5 min",
+      "cook_time": "8 min",
+      "difficulty": "Easy",
+      "nutrition": {
+        "calories": 120,
+        "protein": "4g",
+        "carbs": "8g",
+        "fat": "9g"
+      },
+      "sustainability_tip": "Woody asparagus ends make a good base for vegetable stock instead of being tossed",
+      "diet_tags": [
+        "Vegetarian",
+        "Gluten-Free",
+        "Healthy"
+      ],
+      "cuisine": "Western",
+      "id": 109
+    },
+    {
+      "name": "Roasted Root Vegetables",
+      "ingredients": [
+        "beetroot",
+        "turnip",
+        "carrot",
+        "olive oil",
+        "salt"
+      ],
+      "steps": [
+        "Preheat the oven to 200C",
+        "Peel and cut beetroot, turnip and carrot into even chunks",
+        "Toss with olive oil and salt on a baking tray",
+        "Roast for 30-35 minutes, turning halfway, until tender and caramelized"
+      ],
+      "prep_time": "15 min",
+      "cook_time": "35 min",
+      "difficulty": "Easy",
+      "nutrition": {
+        "calories": 160,
+        "protein": "3g",
+        "carbs": "26g",
+        "fat": "6g"
+      },
+      "sustainability_tip": "Root vegetable peels and trimmings are great for a homemade stock bag in the freezer",
+      "diet_tags": [
+        "Vegan",
+        "Vegetarian",
+        "Gluten-Free",
+        "Healthy"
+      ],
+      "cuisine": "Western",
+      "id": 110
+    },
+    {
+      "name": "Grapefruit Avocado Salad",
+      "ingredients": [
+        "grapefruit",
+        "avocado",
+        "lettuce",
+        "olive oil",
+        "lime"
+      ],
+      "steps": [
+        "Peel and segment the grapefruit",
+        "Slice the avocado",
+        "Arrange over a bed of lettuce",
+        "Drizzle with olive oil and a squeeze of lime juice"
+      ],
+      "prep_time": "10 min",
+      "cook_time": "0 min",
+      "difficulty": "Very Easy",
+      "nutrition": {
+        "calories": 220,
+        "protein": "3g",
+        "carbs": "18g",
+        "fat": "16g"
+      },
+      "sustainability_tip": "Save avocado pits and grapefruit peel scraps for composting",
+      "diet_tags": [
+        "Vegan",
+        "Vegetarian",
+        "Gluten-Free",
+        "Healthy"
+      ],
+      "cuisine": "Western",
+      "id": 111
+    },
+    {
+      "name": "Mixed Fruit Salad",
+      "ingredients": [
+        "grapes",
+        "kiwi",
+        "melon",
+        "orange"
+      ],
+      "steps": [
+        "Halve the grapes",
+        "Peel and slice the kiwi",
+        "Cube the melon",
+        "Peel and segment the orange, then toss everything together in a bowl"
+      ],
+      "prep_time": "12 min",
+      "cook_time": "0 min",
+      "difficulty": "Very Easy",
+      "nutrition": {
+        "calories": 140,
+        "protein": "2g",
+        "carbs": "34g",
+        "fat": "1g"
+      },
+      "sustainability_tip": "Slightly overripe fruit is perfect here — sweeter and otherwise likely to be wasted",
+      "diet_tags": [
+        "Vegan",
+        "Vegetarian",
+        "Gluten-Free",
+        "Dairy-Free",
+        "Healthy"
+      ],
+      "cuisine": "Western",
+      "id": 112
+    },
+    {
+      "name": "Tropical Fruit Bowl",
+      "ingredients": [
+        "papaya",
+        "passion fruit",
+        "pineapple",
+        "lime"
+      ],
+      "steps": [
+        "Peel and cube the papaya and pineapple",
+        "Halve the passion fruit and scoop out the pulp",
+        "Combine all the fruit in a bowl",
+        "Squeeze lime juice over the top and toss gently"
+      ],
+      "prep_time": "12 min",
+      "cook_time": "0 min",
+      "difficulty": "Very Easy",
+      "nutrition": {
+        "calories": 130,
+        "protein": "2g",
+        "carbs": "32g",
+        "fat": "0g"
+      },
+      "sustainability_tip": "Papaya seeds are edible and peppery — try them dried and ground as a pepper substitute",
+      "diet_tags": [
+        "Vegan",
+        "Vegetarian",
+        "Gluten-Free",
+        "Dairy-Free",
+        "Healthy"
+      ],
+      "cuisine": "Western",
+      "id": 113
+    },
+    {
+      "name": "Stone Fruit Crumble",
+      "ingredients": [
+        "peach",
+        "plum",
+        "nectarine",
+        "oats",
+        "cinnamon"
+      ],
+      "steps": [
+        "Preheat the oven to 190C",
+        "Slice the peach, plum and nectarine into a baking dish",
+        "Sprinkle with cinnamon",
+        "Top with oats and bake for 20-25 minutes until the fruit is soft and the top is golden"
+      ],
+      "prep_time": "10 min",
+      "cook_time": "25 min",
+      "difficulty": "Easy",
+      "nutrition": {
+        "calories": 210,
+        "protein": "4g",
+        "carbs": "42g",
+        "fat": "3g"
+      },
+      "sustainability_tip": "Bruised or overripe stone fruit works perfectly once baked, so nothing needs to go to waste",
+      "diet_tags": [
+        "Vegan",
+        "Vegetarian",
+        "Dairy-Free"
+      ],
+      "cuisine": "Western",
+      "id": 114
+    },
+    {
+      "name": "Poached Pear",
+      "ingredients": [
+        "pear",
+        "honey",
+        "cinnamon",
+        "lemon"
+      ],
+      "steps": [
+        "Peel the pear, keeping the stem intact",
+        "Simmer water with honey, cinnamon and a squeeze of lemon juice",
+        "Add the pear and poach for 15-20 minutes, turning occasionally, until tender",
+        "Let cool slightly in the liquid before serving"
+      ],
+      "prep_time": "5 min",
+      "cook_time": "20 min",
+      "difficulty": "Easy",
+      "nutrition": {
+        "calories": 150,
+        "protein": "1g",
+        "carbs": "38g",
+        "fat": "0g"
+      },
+      "sustainability_tip": "Pear peels can be steeped into a fragrant tea instead of thrown away",
+      "diet_tags": [
+        "Vegan",
+        "Vegetarian",
+        "Gluten-Free",
+        "Dairy-Free"
+      ],
+      "cuisine": "Western",
+      "id": 115
+    },
+    {
+      "name": "Pomegranate Quinoa Salad",
+      "ingredients": [
+        "pomegranate",
+        "quinoa",
+        "spinach",
+        "feta",
+        "lemon"
+      ],
+      "steps": [
+        "Cook quinoa and let it cool",
+        "Deseed the pomegranate",
+        "Toss quinoa with spinach and pomegranate seeds",
+        "Crumble feta over the top and dress with lemon juice"
+      ],
+      "prep_time": "15 min",
+      "cook_time": "0 min",
+      "difficulty": "Easy",
+      "nutrition": {
+        "calories": 280,
+        "protein": "10g",
+        "carbs": "36g",
+        "fat": "10g"
+      },
+      "sustainability_tip": "Pomegranate seeds freeze well — deseed a whole fruit at once to avoid waste",
+      "diet_tags": [
+        "Vegetarian",
+        "Gluten-Free",
+        "Healthy"
+      ],
+      "cuisine": "Mediterranean",
+      "id": 116
+    },
+    {
+      "name": "Radish and Cucumber Salad",
+      "ingredients": [
+        "radish",
+        "cucumber",
+        "lemon",
+        "olive oil",
+        "mint"
+      ],
+      "steps": [
+        "Thinly slice the radish and cucumber",
+        "Toss together in a bowl with chopped mint",
+        "Dress with olive oil and a squeeze of lemon juice",
+        "Season with salt and serve chilled"
+      ],
+      "prep_time": "10 min",
+      "cook_time": "0 min",
+      "difficulty": "Very Easy",
+      "nutrition": {
+        "calories": 90,
+        "protein": "1g",
+        "carbs": "6g",
+        "fat": "7g"
+      },
+      "sustainability_tip": "Radish greens are edible too — saute them like you would spinach instead of discarding",
+      "diet_tags": [
+        "Vegan",
+        "Vegetarian",
+        "Gluten-Free",
+        "Dairy-Free",
+        "Healthy"
+      ],
+      "cuisine": "Mediterranean",
+      "id": 117
+    },
+    {
+      "name": "Leek and Potato Soup",
+      "ingredients": [
+        "leek",
+        "potato",
+        "butter",
+        "milk",
+        "salt"
+      ],
+      "steps": [
+        "Slice the leek and dice the potato",
+        "Saute the leek in butter until soft",
+        "Add potato and enough water to cover, simmer until tender",
+        "Blend until smooth, stir in milk and season with salt"
+      ],
+      "prep_time": "10 min",
+      "cook_time": "25 min",
+      "difficulty": "Easy",
+      "nutrition": {
+        "calories": 240,
+        "protein": "5g",
+        "carbs": "32g",
+        "fat": "10g"
+      },
+      "sustainability_tip": "The dark green leek tops are edible — use them here instead of throwing them out",
+      "diet_tags": [
+        "Vegetarian",
+        "Gluten-Free"
+      ],
+      "cuisine": "Western",
+      "id": 118
+    },
+    {
+      "name": "Sweetcorn Fritters",
+      "ingredients": [
+        "sweetcorn",
+        "egg",
+        "flour",
+        "green onion",
+        "salt"
+      ],
+      "steps": [
+        "Whisk egg with flour and a splash of water to make a batter",
+        "Stir in sweetcorn and chopped green onion",
+        "Season with salt",
+        "Fry spoonfuls in a hot oiled pan until golden on both sides"
+      ],
+      "prep_time": "10 min",
+      "cook_time": "10 min",
+      "difficulty": "Easy",
+      "nutrition": {
+        "calories": 220,
+        "protein": "7g",
+        "carbs": "30g",
+        "fat": "8g"
+      },
+      "sustainability_tip": "Leftover corn cobs make a surprisingly good stock base",
+      "diet_tags": [
+        "Vegetarian"
+      ],
+      "cuisine": "Western",
+      "id": 119
+    },
+    {
+      "name": "Watermelon Feta Salad",
+      "ingredients": [
+        "watermelon",
+        "feta",
+        "mint",
+        "lime"
+      ],
+      "steps": [
+        "Cube the watermelon and remove any seeds",
+        "Toss with crumbled feta and torn mint leaves",
+        "Squeeze lime juice over the top",
+        "Serve immediately, chilled"
+      ],
+      "prep_time": "10 min",
+      "cook_time": "0 min",
+      "difficulty": "Very Easy",
+      "nutrition": {
+        "calories": 130,
+        "protein": "5g",
+        "carbs": "14g",
+        "fat": "6g"
+      },
+      "sustainability_tip": "Watermelon rind can be pickled instead of thrown away — see Waste Control for the recipe",
+      "diet_tags": [
+        "Vegetarian",
+        "Gluten-Free",
+        "Healthy"
+      ],
+      "cuisine": "Mediterranean",
+      "id": 120
+    },
+    {
+      "name": "Zucchini Noodles with Pesto",
+      "ingredients": [
+        "zucchini",
+        "basil",
+        "garlic",
+        "olive oil",
+        "parmesan"
+      ],
+      "steps": [
+        "Spiralize or julienne the zucchini into noodles",
+        "Blend basil, garlic, olive oil and parmesan into a pesto",
+        "Toss the zucchini noodles with the pesto",
+        "Serve immediately at room temperature or lightly warmed"
+      ],
+      "prep_time": "12 min",
+      "cook_time": "0 min",
+      "difficulty": "Easy",
+      "nutrition": {
+        "calories": 210,
+        "protein": "6g",
+        "carbs": "8g",
+        "fat": "18g"
+      },
+      "sustainability_tip": "Zucchini ends and trimmings can go straight into a vegetable stock bag",
+      "diet_tags": [
+        "Vegetarian",
+        "Gluten-Free",
+        "Healthy"
+      ],
+      "cuisine": "Italian",
+      "id": 121
     }
   ],
   "index": {
@@ -3572,7 +4009,8 @@
       89,
       95,
       97,
-      98
+      98,
+      118
     ],
     "milk": [
       0,
@@ -3588,7 +4026,8 @@
       87,
       88,
       89,
-      106
+      106,
+      117
     ],
     "butter": [
       0,
@@ -3608,7 +4047,9 @@
       86,
       88,
       89,
-      101
+      101,
+      108,
+      117
     ],
     "salt": [
       0,
@@ -3618,7 +4059,11 @@
       47,
       49,
       71,
-      101
+      101,
+      108,
+      109,
+      117,
+      118
     ],
     "spinach": [
       1,
@@ -3626,7 +4071,8 @@
       74,
       79,
       103,
-      104
+      104,
+      115
     ],
     "olive oil": [
       1,
@@ -3641,7 +4087,11 @@
       37,
       40,
       48,
-      107
+      107,
+      109,
+      110,
+      116,
+      120
     ],
     "garlic": [
       1,
@@ -3690,7 +4140,9 @@
       94,
       96,
       104,
-      105
+      105,
+      108,
+      120
     ],
     "pasta": [
       2,
@@ -3727,7 +4179,8 @@
       2,
       10,
       28,
-      59
+      59,
+      120
     ],
     "chicken breast": [
       3,
@@ -3835,7 +4288,8 @@
       53,
       57,
       68,
-      69
+      69,
+      114
     ],
     "rice": [
       5,
@@ -3870,7 +4324,8 @@
       73,
       74,
       103,
-      105
+      105,
+      109
     ],
     "shrimp": [
       7,
@@ -3887,7 +4342,11 @@
       36,
       40,
       53,
-      107
+      107,
+      108,
+      114,
+      115,
+      116
     ],
     "parsley": [
       7,
@@ -3920,13 +4379,15 @@
       8,
       9,
       52,
-      83
+      83,
+      110
     ],
     "parmesan": [
       9,
       11,
       26,
-      27
+      27,
+      120
     ],
     "bread": [
       9,
@@ -3946,7 +4407,8 @@
       88,
       89,
       101,
-      102
+      102,
+      118
     ],
     "mozzarella": [
       10,
@@ -3983,12 +4445,15 @@
       75
     ],
     "cinnamon": [
-      17
+      17,
+      113,
+      114
     ],
     "avocado": [
       19,
       91,
-      103
+      103,
+      110
     ],
     "ginger": [
       20,
@@ -4037,10 +4502,13 @@
       40,
       54,
       95,
-      107
+      107,
+      116
     ],
     "feta": [
-      29
+      29,
+      115,
+      119
     ],
     "potato": [
       30,
@@ -4052,7 +4520,8 @@
       73,
       82,
       87,
-      102
+      102,
+      117
     ],
     "mayonnaise": [
       34,
@@ -4092,7 +4561,8 @@
       65,
       70,
       75,
-      76
+      76,
+      118
     ],
     "sweet potato": [
       47,
@@ -4100,7 +4570,8 @@
     ],
     "oats": [
       50,
-      106
+      106,
+      113
     ],
     "peanut butter": [
       51
@@ -4109,13 +4580,16 @@
       53
     ],
     "orange": [
-      53
+      53,
+      111
     ],
     "yogurt": [
       54
     ],
     "mint": [
-      54
+      54,
+      116,
+      119
     ],
     "ricotta": [
       55
@@ -4146,7 +4620,10 @@
       58,
       60,
       90,
-      91
+      91,
+      110,
+      112,
+      119
     ],
     "tofu": [
       58,
@@ -4197,7 +4674,8 @@
       84
     ],
     "pineapple": [
-      64
+      64,
+      112
     ],
     "vinegar": [
       64,
@@ -4304,10 +4782,68 @@
     ],
     "quinoa": [
       103,
-      107
+      107,
+      115
     ],
     "baking powder": [
       106
+    ],
+    "asparagus": [
+      108
+    ],
+    "beetroot": [
+      109
+    ],
+    "turnip": [
+      109
+    ],
+    "grapefruit": [
+      110
+    ],
+    "grapes": [
+      111
+    ],
+    "kiwi": [
+      111
+    ],
+    "melon": [
+      111
+    ],
+    "papaya": [
+      112
+    ],
+    "passion fruit": [
+      112
+    ],
+    "peach": [
+      113
+    ],
+    "plum": [
+      113
+    ],
+    "nectarine": [
+      113
+    ],
+    "pear": [
+      114
+    ],
+    "pomegranate": [
+      115
+    ],
+    "radish": [
+      116
+    ],
+    "leek": [
+      117
+    ],
+    "sweetcorn": [
+      118
+    ],
+    "watermelon": [
+      119
+    ],
+    "zucchini": [
+      120
     ]
   }
 }

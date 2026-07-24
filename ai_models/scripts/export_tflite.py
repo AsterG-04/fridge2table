@@ -1,8 +1,8 @@
 """
-Converts the trained v2 Keras model to a quantized TFLite model for
+Converts the trained v4 Keras model to a quantized TFLite model for
 on-device inference, saving:
 
-    ai_models/model/ingredient_classifier_v2.tflite
+    ai_models/model/ingredient_classifier_v4.tflite
 
 The exported model takes raw [0, 255] pixel input directly (the
 MobileNetV2 [-1, 1] rescaling is baked into the model graph itself),
@@ -19,8 +19,8 @@ import tensorflow as tf
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
 MODEL_DIR = os.path.join(BASE_DIR, "model")
-KERAS_MODEL_PATH = os.path.join(MODEL_DIR, "ingredient_classifier_v2.keras")
-TFLITE_MODEL_PATH = os.path.join(MODEL_DIR, "ingredient_classifier_v2.tflite")
+KERAS_MODEL_PATH = os.path.join(MODEL_DIR, "ingredient_classifier_v4.keras")
+TFLITE_MODEL_PATH = os.path.join(MODEL_DIR, "ingredient_classifier_v4.tflite")
 
 IMAGE_SIZE = (224, 224)
 

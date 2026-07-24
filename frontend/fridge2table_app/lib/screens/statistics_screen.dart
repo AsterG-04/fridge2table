@@ -52,12 +52,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
 
-  static const List<_CategoryShare> _categories = [
-    _CategoryShare("Vegetables", 38, AppColors.chipGreenText),
-    _CategoryShare("Protein", 28, Color(0xFF991B1B)),
-    _CategoryShare("Dairy", 20, Color(0xFF1E40AF)),
-    _CategoryShare("Fruits", 14, Color(0xFF9A3412)),
-  ];
+  static const Map<String, Color> _categoryColors = {
+    "Vegetables": AppColors.chipGreenText,
+    "Meat & Seafood": Color(0xFF991B1B),
+    "Dairy": Color(0xFF1E40AF),
+    "Fruits": Color(0xFF9A3412),
+    "Grains & Bread": Color(0xFF5B21B6),
+  };
+
+  List<_CategoryShare> _categories = [];
 
   @override
   void initState() {
@@ -66,14 +69,26 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     _loadHistoryStats();
   }
 
+  // Independent calls run concurrently rather than stacking up their
+  // timeouts one after another — see the same fix in home_screen.dart.
   Future<void> _loadRealStats() async {
+    await Future.wait([
+      _loadInventoryCount(),
+      _loadExpiredCount(),
+      _loadRecipesMatchedCount(),
+    ]);
+  }
+
+  Future<void> _loadInventoryCount() async {
     try {
       final inventory = await ApiService.getInventory();
       if (mounted) setState(() => _totalItems = inventory.length);
     } catch (_) {
       // Falls back to "—" below.
     }
+  }
 
+  Future<void> _loadExpiredCount() async {
     try {
       final expiryStatus = await ApiService.getExpiryStatus();
       final count = expiryStatus.where((e) => e["status"] == "expired").length;
@@ -81,7 +96,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     } catch (_) {
       // Falls back to "—" below.
     }
+  }
 
+  Future<void> _loadRecipesMatchedCount() async {
     try {
       final recipes = await ApiService.getRecipesDetailed();
       if (mounted) setState(() => _recipesMatched = recipes.length);
@@ -91,17 +108,35 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Future<void> _loadHistoryStats() async {
+    debugPrint("[StatisticsScreen] _loadHistoryStats() starting");
     await CookedHistoryStore.load();
     if (!mounted) return;
 
     final totalCooked = CookedHistoryStore.totalMealsCooked;
+    debugPrint("[StatisticsScreen] _loadHistoryStats(): totalMealsCooked=$totalCooked");
 
     setState(() {
       _recipesCooked = totalCooked;
       _foodSavedKg = totalCooked * _avgKgPerCook;
       _trends = _buildTrendsFromHistory();
+      _categories = _buildCategoryShares();
       _historyLoaded = true;
     });
+    debugPrint(
+      "[StatisticsScreen] _loadHistoryStats() done — _recipesCooked=$_recipesCooked "
+      "_foodSavedKg=$_foodSavedKg",
+    );
+  }
+
+  List<_CategoryShare> _buildCategoryShares() {
+    final counts = CookedHistoryStore.categoryCounts;
+    final total = counts.values.fold(0, (sum, c) => sum + c);
+    if (total == 0) return [];
+
+    return [
+      for (final entry in counts.entries)
+        _CategoryShare(entry.key, entry.value / total * 100, _categoryColors[entry.key] ?? AppColors.textGray),
+    ]..sort((a, b) => b.percent.compareTo(a.percent));
   }
 
   List<_MonthTrend> _buildTrendsFromHistory() {
@@ -169,6 +204,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   ),
                   const SizedBox(height: 12),
                   _buildStatGrid(),
+                  if (_historyLoaded && (_recipesCooked ?? 0) == 0) ...[
+                    const SizedBox(height: 8),
+                    _buildStartCookingTip(),
+                  ],
                   const SizedBox(height: 16),
                   _buildTrendsCard(context),
                   const SizedBox(height: 16),
@@ -269,6 +308,26 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStartCookingTip() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: AppColors.lightGreen, borderRadius: BorderRadius.circular(16)),
+      child: const Row(
+        children: [
+          Icon(Icons.emoji_events_outlined, size: 18, color: AppColors.darkGreen),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              "Start cooking to track your impact!",
+              style: TextStyle(color: AppColors.darkGreen, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -380,26 +439,34 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         children: [
           const Text("Most Used Categories", style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              SizedBox(
-                width: 100,
-                height: 100,
-                child: CustomPaint(painter: _DonutPainter(_categories)),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  children: [
-                    for (final c in _categories) ...[
-                      _categoryRow(c),
-                      const SizedBox(height: 10),
-                    ],
-                  ],
+          if (!_historyLoaded)
+            const SizedBox.shrink()
+          else if (_categories.isEmpty)
+            const Text(
+              "📊 Cook a few recipes to see your category breakdown!",
+              style: TextStyle(color: AppColors.textGray, fontSize: 12),
+            )
+          else
+            Row(
+              children: [
+                SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: CustomPaint(painter: _DonutPainter(_categories)),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    children: [
+                      for (final c in _categories) ...[
+                        _categoryRow(c),
+                        const SizedBox(height: 10),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );

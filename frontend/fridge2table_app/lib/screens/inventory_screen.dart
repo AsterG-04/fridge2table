@@ -186,12 +186,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           ),
                           const SizedBox(height: 8),
                           if (items.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.only(top: 40),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 40),
                               child: Center(
                                 child: Text(
-                                  "No ingredients found",
-                                  style: TextStyle(color: AppColors.textGray),
+                                  allItems.isEmpty
+                                      ? "Your pantry is empty — tap + to add ingredients"
+                                      : "No ingredients match your search",
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: AppColors.textGray),
                                 ),
                               ),
                             )
@@ -289,14 +292,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildSearchBar() {
+    // A light backdrop (not AppColors.darkGreen) here matters for more than
+    // looks: _buildTopBar()'s bottom corners are rounded, which reveals
+    // whatever sits directly behind/below it. A same-color dark green
+    // backdrop made that rounding invisible against the header, but the very
+    // next thing after the rounded corners was actually this section's
+    // background — so on a light backdrop instead, the header's rounding
+    // reads as a clean edge into the page rather than an odd notch.
     return Container(
-      color: AppColors.darkGreen,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      color: AppColors.background,
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.borderGreen),
         ),
         child: Row(
           children: [

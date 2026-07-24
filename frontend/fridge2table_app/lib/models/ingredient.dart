@@ -53,8 +53,12 @@ class Ingredient {
 
   // Convert Flutter object → JSON for Supabase, which (unlike the local
   // FastAPI create/update endpoints) needs an explicit id + updated_at
-  // since sync upserts by id and compares timestamps.
-  Map<String, dynamic> toSupabaseJson() {
+  // since sync upserts by id and compares timestamps. userId is required
+  // here (rather than stored on the model) since it's purely a cloud-sync
+  // concept — the Supabase RLS policy rejects any row whose user_id
+  // doesn't match the authenticated caller, so this must always be the
+  // current signed-in user's id.
+  Map<String, dynamic> toSupabaseJson(String userId) {
     return {
       "id": id,
       "name": name,
@@ -64,6 +68,7 @@ class Ingredient {
       "category": category,
       "location": location,
       "updated_at": (updatedAt ?? DateTime.now().toUtc()).toIso8601String(),
+      "user_id": userId,
     };
   }
 }

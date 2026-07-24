@@ -1,10 +1,10 @@
 """
 Trains a MobileNetV2 transfer-learning classifier on the EXPANDED
-ingredient dataset (ai_models/dataset_v2 -- the original 36 classes
-plus 4 dairy classes), and saves:
+ingredient dataset (ai_models/dataset_v3 -- the 40 v2 classes plus 16 new
+fruit/vegetable/dairy-alternative classes), and saves:
 
-    ai_models/model/ingredient_classifier_v2.keras
-    ai_models/model/class_names_v2.json
+    ai_models/model/ingredient_classifier_v3.keras
+    ai_models/model/class_names_v3.json
 
 Two-phase training:
   1. Head-only: base model frozen, train the new classification head.
@@ -18,12 +18,12 @@ in both phases so the model generalizes better to real phone camera
 conditions (varied lighting/angles) rather than just the clean training
 photos.
 
-Does NOT overwrite the v1 model files -- this is a separate, comparable
-output so v1 stays as a safe fallback until v2 is verified to be as
-good or better.
+Does NOT overwrite the v2 model files -- this is a separate, comparable
+output so v2 stays as a safe fallback until v3 is verified to be as good
+or better.
 
 Run from ai_models/ with the venv activated:
-    venv\\Scripts\\python.exe scripts\\train_v2.py
+    venv\\Scripts\\python.exe scripts\\train_v3.py
 """
 
 import json
@@ -32,8 +32,8 @@ import os
 import tensorflow as tf
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
-TRAIN_DIR = os.path.join(BASE_DIR, "dataset_v2", "train")
-TEST_DIR = os.path.join(BASE_DIR, "dataset_v2", "test")
+TRAIN_DIR = os.path.join(BASE_DIR, "dataset_v3", "train")
+TEST_DIR = os.path.join(BASE_DIR, "dataset_v3", "test")
 MODEL_DIR = os.path.join(BASE_DIR, "model")
 
 IMAGE_SIZE = (224, 224)
@@ -100,7 +100,7 @@ def build_model(num_classes):
         # ever reach this layer. RandomBrightness defaults to assuming
         # [0, 255] inputs -- without value_range matching the real data,
         # its brightness delta is calibrated ~128x too large and destroys
-        # every augmented batch (this silently wrecked an earlier run:
+        # every augmented batch (this silently wrecked an earlier v2 run:
         # training accuracy never rose past ~18% while validation, which
         # skips augmentation, still reached ~55%).
         tf.keras.layers.RandomBrightness(0.2, value_range=(-1, 1)),
@@ -197,11 +197,11 @@ def main():
 
     print(f"\nFinal chosen test accuracy: {test_acc:.4f}")
 
-    model_path = os.path.join(MODEL_DIR, "ingredient_classifier_v2.keras")
+    model_path = os.path.join(MODEL_DIR, "ingredient_classifier_v3.keras")
     model.save(model_path)
     print(f"Saved model to {model_path}")
 
-    class_names_path = os.path.join(MODEL_DIR, "class_names_v2.json")
+    class_names_path = os.path.join(MODEL_DIR, "class_names_v3.json")
     with open(class_names_path, "w") as f:
         json.dump(class_names, f, indent=2)
     print(f"Saved class names to {class_names_path}")

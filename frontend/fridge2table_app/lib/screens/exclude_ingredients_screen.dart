@@ -16,6 +16,7 @@ class ExcludeIngredientsScreen extends StatefulWidget {
 
 class _ExcludeIngredientsScreenState extends State<ExcludeIngredientsScreen> {
   final Set<String> _skipped = {};
+  bool _submitting = false;
 
   static const Map<String, String> _hints = {
     "garlic": "Usually a pinch or a few cloves",
@@ -33,20 +34,27 @@ class _ExcludeIngredientsScreenState extends State<ExcludeIngredientsScreen> {
       _hints[name.toLowerCase()] ?? "Amount may vary when cooked by feel";
 
   Future<void> _confirm() async {
-    final skippedCount = _skipped.length;
-    final deductions = await RecipeCookingService.deduct(widget.recipe, _skipped);
+    if (_submitting) return;
+    setState(() => _submitting = true);
 
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RecipeCompleteScreen(
-          recipe: widget.recipe,
-          deductionSummary: "Cooked by estimate · $skippedCount item${skippedCount == 1 ? '' : 's'} skipped",
-          deductions: deductions,
+    try {
+      final skippedCount = _skipped.length;
+      final deductions = await RecipeCookingService.deduct(widget.recipe, _skipped);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RecipeCompleteScreen(
+            recipe: widget.recipe,
+            deductionSummary: "Cooked by estimate · $skippedCount item${skippedCount == 1 ? '' : 's'} skipped",
+            deductions: deductions,
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -219,14 +227,21 @@ class _ExcludeIngredientsScreenState extends State<ExcludeIngredientsScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _confirm,
-              icon: const Icon(Icons.check, color: Colors.white, size: 16),
-              label: const Text(
-                "Confirm & Update Pantry",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              onPressed: _submitting ? null : _confirm,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.check, color: Colors.white, size: 16),
+              label: Text(
+                _submitting ? "Updating pantry..." : "Confirm & Update Pantry",
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.darkGreen,
+                disabledBackgroundColor: AppColors.darkGreen.withValues(alpha: 0.5),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),

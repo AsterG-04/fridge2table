@@ -14,8 +14,8 @@ class ClassificationResult {
 
 class IngredientClassifierService {
   static const String _modelAsset =
-      'assets/models/ingredient_classifier_v2.tflite';
-  static const String _classNamesAsset = 'assets/models/class_names.json';
+      'assets/models/ingredient_classifier_v4.tflite';
+  static const String _classNamesAsset = 'assets/models/class_names_v4.json';
   static const int _inputSize = 224;
 
   static Interpreter? _interpreter;

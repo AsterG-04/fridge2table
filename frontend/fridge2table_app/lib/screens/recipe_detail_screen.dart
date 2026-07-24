@@ -17,11 +17,49 @@ class RecipeDetailScreen extends StatefulWidget {
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _saved = false;
   List<String> _matchedAllergens = [];
+  List<String> _matchedDietConflicts = [];
+
+  // Only diets with a clear-cut forbidden-ingredient list are checked here —
+  // Keto/Low Sugar are macronutrient targets, not a fixed set of banned
+  // ingredients, so flagging them the same way would be more guesswork than
+  // signal.
+  static const List<String> _meatTerms = [
+    "chicken", "beef", "pork", "lamb", "turkey", "bacon", "sausage", "ham",
+    "duck", "veal", "venison", "meat", "mince", "steak",
+  ];
+  static const List<String> _seafoodTerms = [
+    "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "lobster", "seafood",
+    "anchovy", "sardine", "cod", "shellfish", "squid", "octopus",
+  ];
+  static const List<String> _dairyTerms = [
+    "milk", "cheese", "butter", "cream", "yogurt", "yoghurt", "dairy", "ghee",
+  ];
+  static const List<String> _porkTerms = ["pork", "bacon", "ham", "lard"];
+  static const List<String> _alcoholTerms = [
+    "wine", "beer", "rum", "alcohol", "vodka", "whiskey", "brandy",
+  ];
+  static const List<String> _shellfishTerms = [
+    "shrimp", "prawn", "crab", "lobster", "shellfish", "clam", "oyster", "mussel",
+  ];
+  static const List<String> _glutenTerms = [
+    "wheat", "flour", "barley", "rye", "bread", "pasta", "noodle", "gluten",
+  ];
+
+  static const Map<String, List<String>> _dietForbiddenTerms = {
+    "Vegetarian": [..._meatTerms, ..._seafoodTerms],
+    "Vegan": [..._meatTerms, ..._seafoodTerms, ..._dairyTerms, "egg", "honey", "gelatin"],
+    "Pescatarian": _meatTerms,
+    "Halal": [..._porkTerms, ..._alcoholTerms],
+    "Kosher": [..._porkTerms, ..._shellfishTerms],
+    "Gluten-Free": _glutenTerms,
+    "Dairy-Free": _dairyTerms,
+  };
 
   @override
   void initState() {
     super.initState();
     _loadAllergyWarnings();
+    _loadDietWarnings();
   }
 
   Future<void> _loadAllergyWarnings() async {
@@ -40,6 +78,25 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
     if (mounted && matches.isNotEmpty) {
       setState(() => _matchedAllergens = matches);
+    }
+  }
+
+  Future<void> _loadDietWarnings() async {
+    final diets = await AuthService.getDietPreferences();
+    final relevant = diets.where(_dietForbiddenTerms.containsKey).toList();
+    if (relevant.isEmpty) return;
+
+    final conflicts = <String>[];
+    for (final diet in relevant) {
+      final terms = _dietForbiddenTerms[diet]!;
+      final hits = widget.recipe.ingredients.where(
+        (ing) => terms.any((t) => ing.name.toLowerCase().contains(t)),
+      );
+      if (hits.isNotEmpty) conflicts.add(diet);
+    }
+
+    if (mounted && conflicts.isNotEmpty) {
+      setState(() => _matchedDietConflicts = conflicts);
     }
   }
 
@@ -94,6 +151,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       children: [
                         if (_matchedAllergens.isNotEmpty) ...[
                           _allergyWarningCard(_matchedAllergens),
+                          const SizedBox(height: 16),
+                        ],
+                        if (_matchedDietConflicts.isNotEmpty) ...[
+                          _dietWarningCard(_matchedDietConflicts),
                           const SizedBox(height: 16),
                         ],
                         if (recipe.sustainabilityTip.isNotEmpty) ...[
@@ -302,6 +363,50 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 const SizedBox(height: 2),
                 Text(
                   "This recipe contains ${allergens.join(", ")}, which you've marked as an allergy.",
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dietWarningCard(List<String> diets) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF9E7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD68910).withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, size: 16, color: Color(0xFFD68910)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "DIET CONFLICT",
+                  style: TextStyle(
+                    color: Color(0xFFD68910),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "This recipe doesn't match your ${diets.join(", ")} preference${diets.length == 1 ? '' : 's'}.",
                   style: const TextStyle(
                     color: AppColors.textDark,
                     fontSize: 13,

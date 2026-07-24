@@ -1,10 +1,12 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'user_scope.dart';
+
 /// Tracks which recipes the user has bookmarked, keyed by recipe name.
 /// Persisted locally so the "Saved" filter on the Recipe screen survives
 /// app restarts, mirroring the pattern used by CookedHistoryStore.
 class SavedRecipesStore {
-  static const _prefsKey = "saved_recipe_names";
+  static Future<String> get _prefsKey => UserScope.key("saved_recipe_names");
 
   static Set<String>? _saved;
 
@@ -13,8 +15,14 @@ class SavedRecipesStore {
     if (cached != null) return cached;
 
     final prefs = await SharedPreferences.getInstance();
-    _saved = (prefs.getStringList(_prefsKey) ?? []).toSet();
+    _saved = (prefs.getStringList(await _prefsKey) ?? []).toSet();
     return _saved!;
+  }
+
+  /// Clears the in-memory cache so the next [load] re-reads from whichever
+  /// user's scoped storage is current — call this on logout.
+  static void reset() {
+    _saved = null;
   }
 
   /// Synchronous access for widgets that have already awaited [load] once.
@@ -30,6 +38,6 @@ class SavedRecipesStore {
       set.add(name);
     }
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_prefsKey, set.toList());
+    await prefs.setStringList(await _prefsKey, set.toList());
   }
 }

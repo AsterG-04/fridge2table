@@ -1,0 +1,30 @@
+# Log files created by start_app.ps1
+backend_dev.log
+backend_dev.err.log
+
+# Python virtual environments (each has its own internal .gitignore too,
+# but excluding the whole directory here is clearer and faster for git to
+# skip than relying on that alone)
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# AI training datasets -- regenerable via ai_models/scripts/build_dataset_v*.py,
+# hundreds of MB to GB of downloaded images that don't belong in git history.
+ai_models/dataset/
+ai_models/dataset_v2/
+ai_models/dataset_v3/
+ai_models/dataset_v4/
+
+# Training checkpoints/artifacts -- regenerable via ai_models/scripts/train_v*.py.
+# The model actually shipped with the app lives in
+# frontend/fridge2table_app/assets/models/ and IS tracked.
+ai_models/model/
+
+# Local dev SQLite database -- mutable local state, not source.
+backend/fridge2table.db
+
+# Claude Code local/runtime state -- machine-specific, not shared config.
+.claude/settings.local.json
+.claude/*.lock

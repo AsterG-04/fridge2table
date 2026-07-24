@@ -147,6 +147,71 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
         "Once roots are a few cm long, transplant into a pot with soil",
       ],
     },
+    {
+      "icon": Icons.eco_outlined,
+      "name": "Garlic Sprouts",
+      "scrap": "Scrap: A clove that's already started sprouting",
+      "method": "Pot with soil",
+      "time": "1–2 weeks to sprout",
+      "difficulty": "Very Easy",
+      "steps": [
+        "Plant the sprouting clove root-down, just under the soil surface",
+        "Keep in a sunny spot and water lightly",
+        "Snip the green shoots as garlic chives, or let it grow a full new bulb over a season",
+      ],
+    },
+    {
+      "icon": Icons.grass_outlined,
+      "name": "Bok Choy Base",
+      "scrap": "Scrap: Root end left over after using the leaves",
+      "method": "Water dish → Pot",
+      "time": "7–10 days for new growth",
+      "difficulty": "Very Easy",
+      "steps": [
+        "Save the root end after trimming off the leaves",
+        "Stand it in a shallow dish with a little water, cut-side up",
+        "Once new leaves sprout from the centre, transplant into soil for a full second head",
+      ],
+    },
+    {
+      "icon": Icons.spa_outlined,
+      "name": "Potato Eyes",
+      "scrap": "Scrap: Potato peels or pieces with an eye/bud attached",
+      "method": "Pot with soil",
+      "time": "2–4 weeks to sprout",
+      "difficulty": "Easy",
+      "steps": [
+        "Let the piece with an eye dry out for a day so it doesn't rot",
+        "Plant it eye-up, a few cm deep in loose soil",
+        "Keep watered and mound soil around the stem as it grows",
+      ],
+    },
+    {
+      "icon": Icons.spa_outlined,
+      "name": "Turmeric Root Piece",
+      "scrap": "Scrap: Any knob of turmeric with a visible bud",
+      "method": "Pot with soil",
+      "time": "2–3 weeks to sprout",
+      "difficulty": "Easy",
+      "steps": [
+        "Choose a turmeric piece with at least one bud or 'eye'",
+        "Plant it bud-up, just under the surface of moist potting soil",
+        "Keep warm and humid until a shoot emerges, similar to ginger",
+      ],
+    },
+    {
+      "icon": Icons.eco_outlined,
+      "name": "Onion Root End",
+      "scrap": "Scrap: The root base left after chopping an onion",
+      "method": "Pot with soil",
+      "time": "1–2 weeks to sprout",
+      "difficulty": "Easy",
+      "steps": [
+        "Save about 1-2 cm of the root end when you chop an onion",
+        "Let it dry for a few hours, then plant root-down in soil",
+        "Keep lightly watered — green shoots can be snipped and used like chives while a new bulb forms",
+      ],
+    },
   ];
 
   static const List<Map<String, Object>> _scrapRecipes = [
@@ -254,6 +319,58 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
       "time": "50 min",
       "difficulty": "Very Easy",
     },
+    {
+      "icon": Icons.restaurant_menu,
+      "name": "Broccoli Stem Slaw",
+      "scrap": "Scrap: Broccoli stems usually cut off and binned",
+      "steps": [
+        "Peel the tough outer layer off the stems",
+        "Grate or julienne the peeled stems",
+        "Toss with a squeeze of lemon, olive oil and a pinch of salt",
+        "Serve as a crunchy slaw alongside anything",
+      ],
+      "time": "10 min",
+      "difficulty": "Very Easy",
+    },
+    {
+      "icon": Icons.local_fire_department_outlined,
+      "name": "Banana Peel \"Bacon\"",
+      "scrap": "Scrap: Banana peels",
+      "steps": [
+        "Wash the peels and slice into thin strips",
+        "Toss with soy sauce, smoked paprika and a little oil",
+        "Bake at 190°C for 15-20 min, flipping halfway, until crisp at the edges",
+        "Use as a smoky, chewy topping or snack",
+      ],
+      "time": "20 min",
+      "difficulty": "Easy",
+    },
+    {
+      "icon": Icons.grass_outlined,
+      "name": "Herb Stem Pesto",
+      "scrap": "Scrap: Leftover parsley, cilantro or basil stems",
+      "steps": [
+        "Wash the stems well",
+        "Blend with garlic, nuts or seeds, parmesan and olive oil",
+        "Season with salt and a squeeze of lemon",
+        "Use like a regular pesto on pasta, toast or roasted vegetables",
+      ],
+      "time": "10 min",
+      "difficulty": "Very Easy",
+    },
+    {
+      "icon": Icons.soup_kitchen_outlined,
+      "name": "Cheese Rind Broth",
+      "scrap": "Scrap: Parmesan or hard cheese rinds",
+      "steps": [
+        "Save rinds in a bag in the freezer until you have a few",
+        "Add them to a pot of simmering soup, stock or tomato sauce",
+        "Let them simmer for at least 20 minutes to release flavour",
+        "Fish out the softened rind before serving",
+      ],
+      "time": "25 min",
+      "difficulty": "Very Easy",
+    },
   ];
 
   static const List<Map<String, Object>> _compostYes = [
@@ -305,6 +422,30 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
       "time": "2–4 weeks to break down",
       "difficulty": "Very Easy",
     },
+    {
+      "name": "Nut and seed shells (crushed)",
+      "description": "Shells add texture and slow-release nutrients, but "
+          "break down very slowly whole — crush them first.",
+      "steps": [
+        "Crush or grind shells into smaller pieces",
+        "Mix thoroughly into the compost pile rather than leaving them in a clump",
+        "Be patient — even crushed, these take longer than soft scraps",
+      ],
+      "time": "6–12 months (crushed)",
+      "difficulty": "Easy",
+    },
+    {
+      "name": "Stale bread and grains (in moderation)",
+      "description": "Small amounts of bread, rice or pasta break down fine, "
+          "but too much at once can mould and attract pests.",
+      "steps": [
+        "Tear or break bread into small pieces first",
+        "Mix in a thin layer, not a dense clump",
+        "Balance with plenty of dry material like leaves or shredded paper",
+      ],
+      "time": "2–4 weeks to break down",
+      "difficulty": "Easy",
+    },
   ];
 
   static const List<Map<String, Object>> _compostNo = [
@@ -344,12 +485,26 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
       "time": "Not compostable at home",
       "difficulty": "Avoid",
     },
+    {
+      "name": "Processed or salty snack foods",
+      "description": "Chips, ready meals and heavily salted leftovers can "
+          "throw off the compost pile's microbial balance and attract pests.",
+      "steps": [
+        "Avoid adding processed or heavily salted foods to your compost pile",
+        "Scrape plates into regular waste instead for anything highly seasoned or processed",
+        "Stick to plain fruit, vegetable and grain scraps for the pile",
+      ],
+      "time": "Not compostable at home",
+      "difficulty": "Avoid",
+    },
   ];
 
   static const List<String> _compostSteps = [
     "Layer scraps with dry material like dried leaves or shredded paper",
     "Turn the pile every week or two to add air and speed up decomposition",
     "Keep it moist (like a wrung-out sponge) and wait 2–3 months for finished compost",
+    "Chop larger scraps into smaller pieces first — smaller pieces break down faster",
+    "Keep a roughly even mix of \"greens\" (wet scraps) and \"browns\" (dry material) so the pile doesn't turn slimy or smelly",
   ];
 
   void _showDetailSheet({
@@ -491,8 +646,7 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          _buildTopBar(),
-          _buildIntro(),
+          _buildHeader(),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -504,7 +658,11 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
     );
   }
 
-  Widget _buildTopBar() {
+  // Nav row and the tabs/search section below it are merged into a single
+  // rounded-bottom Container rather than two stacked same-color Containers —
+  // stacking two separately would leave a visible notch where the header's
+  // own rounded corners reveal whatever sits directly behind/below it.
+  Widget _buildHeader() {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -514,77 +672,79 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
           bottomRight: Radius.circular(28),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 48, 12, 16),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.maybePop(context),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
-            ),
-          ),
-          const Expanded(
-            child: Text(
-              "Waste Control",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: "Outfit",
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: _showHelp,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.help_outline, color: Colors.white, size: 18),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIntro() {
-    return Container(
-      color: AppColors.darkGreen,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Turn food scraps into something useful",
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.6),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 48, 12, 16),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.maybePop(context),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+                  ),
+                ),
+                const Expanded(
+                  child: Text(
+                    "Waste Control",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: "Outfit",
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _showHelp,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.help_outline, color: Colors.white, size: 18),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _tabButton(0, "Regrow")),
-              const SizedBox(width: 8),
-              Expanded(child: _tabButton(1, "Scrap Recipes")),
-              const SizedBox(width: 8),
-              Expanded(child: _tabButton(2, "Compost")),
-            ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Turn food scraps into something useful",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _tabButton(0, "Regrow")),
+                    const SizedBox(width: 8),
+                    Expanded(child: _tabButton(1, "Scrap Recipes")),
+                    const SizedBox(width: 8),
+                    Expanded(child: _tabButton(2, "Compost")),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildSearchBar(),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          _buildSearchBar(),
         ],
       ),
     );
@@ -594,8 +754,9 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: Colors.white.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
@@ -646,8 +807,9 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.14),
+          color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.22),
           borderRadius: BorderRadius.circular(999),
+          border: isActive ? null : Border.all(color: Colors.white.withValues(alpha: 0.25)),
         ),
         alignment: Alignment.center,
         child: Text(

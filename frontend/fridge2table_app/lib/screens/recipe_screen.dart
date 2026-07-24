@@ -382,18 +382,46 @@ class _RecipeScreenState extends State<RecipeScreen> {
         return AsyncStateBuilder<List<Map<String, dynamic>>>(
           snapshot: snapshot,
           onRetry: _refresh,
-          isEmpty: (items) => _applyFilters(items).isEmpty,
-          emptyIcon: Icons.restaurant,
-          emptyTitle: 'No recipes found',
-          emptySubtitle: 'Try a different search or filter',
           builder: (context, items) {
             final filtered = _applyFilters(items);
-            final maxScore = filtered.isEmpty
-                ? 0
-                : filtered
-                    .map((r) => (r['match_score'] ?? 0) as num)
-                    .reduce((a, b) => a > b ? a : b);
-            final showLowMatchTip = filtered.isNotEmpty && maxScore < 50;
+
+            if (filtered.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.restaurant, size: 40, color: Color(0xFF9CA3AF)),
+                      const SizedBox(height: 12),
+                      Text(
+                        items.isEmpty
+                            ? "Add ingredients to your pantry to discover recipes"
+                            : "No recipes found",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (items.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        const Text(
+                          "Try a different search or filter",
+                          style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final maxScore = filtered
+                .map((r) => (r['match_score'] ?? 0) as num)
+                .reduce((a, b) => a > b ? a : b);
+            final showLowMatchTip = maxScore < 50;
 
             return Column(
               children: [

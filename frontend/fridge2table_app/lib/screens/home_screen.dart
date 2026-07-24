@@ -26,6 +26,15 @@ class _HomeScreenState extends State<HomeScreen> {
   String _userName = "there";
   List<Ingredient>? _recentIngredients;
   List<Map<String, dynamic>>? _topRecipes;
+  bool _recentIngredientsFailed = false;
+  bool _topRecipesFailed = false;
+
+  // Backing data for the AI Insight banner — the most urgent expiring items
+  // (soonest first) and the *full* matched-recipe list (not just the top 3
+  // shown in "Top Recipe Picks") so the banner can report a real rescue
+  // count for whichever ingredient is actually most urgent.
+  List<Map<String, dynamic>> _expiringSoonItems = [];
+  List<Map<String, dynamic>> _allMatchedRecipes = [];
 
   static const List<List<Color>> _recipeGradients = [
     [Color(0xFF7B341E), Color(0xFFC05621)],
@@ -57,7 +66,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return (words[0][0] + words[1][0]).toUpperCase();
   }
 
+  // Three independent API calls — run concurrently instead of one after
+  // another. Sequentially, three 10s-timeout-capable calls could stack up
+  // to 30s in the worst case (and are still additive even when they all
+  // succeed, since a real network round-trip isn't free the way it is on
+  // an emulator's loopback); in parallel the whole thing takes as long as
+  // the single slowest call. Each keeps its own try/catch so one failing
+  // doesn't block the others from resolving.
   Future<void> _loadStats() async {
+    await Future.wait([
+      _loadInventoryStats(),
+      _loadExpiryStats(),
+      _loadRecipeStats(),
+    ]);
+  }
+
+  Future<void> _loadInventoryStats() async {
     try {
       final inventory = await ApiService.getInventory();
       final sorted = [...inventory]
@@ -66,33 +90,92 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _itemCount = inventory.length;
           _recentIngredients = sorted.take(5).toList();
+          _recentIngredientsFailed = false;
         });
       }
     } catch (_) {
-      // Stat card and recent list fall back below.
+      // Resolve to empty rather than leaving _recentIngredients null
+      // forever — otherwise the section spins indefinitely instead of
+      // showing a retryable error.
+      if (mounted) {
+        setState(() {
+          _itemCount = 0;
+          _recentIngredients = [];
+          _recentIngredientsFailed = true;
+        });
+      }
     }
+  }
 
+  Future<void> _loadExpiryStats() async {
     try {
       final expiryStatus = await ApiService.getExpiryStatus();
-      final count = expiryStatus
+      final urgent = expiryStatus
           .where((e) => e["status"] == "today" || e["status"] == "soon")
-          .length;
-      if (mounted) setState(() => _expiringSoonCount = count);
+          .toList()
+        // "today" is more urgent than "soon" — everything else that
+        // reaches here is already one of those two statuses.
+        ..sort((a, b) => a["status"] == b["status"] ? 0 : (a["status"] == "today" ? -1 : 1));
+      if (mounted) {
+        setState(() {
+          _expiringSoonCount = urgent.length;
+          _expiringSoonItems = urgent;
+        });
+      }
     } catch (_) {
-      // Stat card falls back to "—" below.
+      if (mounted) {
+        setState(() {
+          _expiringSoonCount = 0;
+          _expiringSoonItems = [];
+        });
+      }
     }
+  }
 
+  Future<void> _loadRecipeStats() async {
     try {
       final recipes = await ApiService.getRecipesDetailed();
       if (mounted) {
         setState(() {
           _recipeMatchCount = recipes.length;
           _topRecipes = recipes.take(3).toList();
+          _allMatchedRecipes = recipes;
+          _topRecipesFailed = false;
         });
       }
     } catch (_) {
-      // Stat card and recipe picks fall back below.
+      if (mounted) {
+        setState(() {
+          _recipeMatchCount = 0;
+          _topRecipes = [];
+          _allMatchedRecipes = [];
+          _topRecipesFailed = true;
+        });
+      }
     }
+  }
+
+  /// The single most urgent expiring ingredient and how many of the
+  /// currently matched recipes could use it up — null until both the
+  /// expiry and recipe calls have resolved, so the banner can tell "still
+  /// loading" apart from "genuinely nothing expiring".
+  (String name, int rescueCount)? get _aiInsight {
+    if (_expiringSoonCount == null || _recipeMatchCount == null) return null;
+    if (_expiringSoonItems.isEmpty) return null;
+
+    final urgentName = (_expiringSoonItems.first["name"] as String?)?.trim() ?? "";
+    if (urgentName.isEmpty) return null;
+
+    final normalized = urgentName.toLowerCase();
+    final rescueCount = _allMatchedRecipes.where((recipe) {
+      final matched = (recipe["matched_ingredients"] as List?) ?? const [];
+      return matched.any((m) {
+        final term = m.toString().toLowerCase();
+        return normalized.contains(term) || term.contains(normalized);
+      });
+    }).length;
+
+    return (urgentName, rescueCount);
   }
 
   @override
@@ -300,6 +383,46 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildAiInsightBanner(BuildContext context) {
+    // Still loading -- both expiry and recipe calls haven't resolved yet.
+    // Say nothing rather than flash a stale/fake claim while real data is
+    // still in flight.
+    if (_expiringSoonCount == null || _recipeMatchCount == null) {
+      return const SizedBox.shrink();
+    }
+
+    final insight = _aiInsight;
+
+    if (insight == null) {
+      return Container(
+        padding: const EdgeInsets.all(17),
+        decoration: BoxDecoration(
+          color: AppColors.lightGreen,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.eco_outlined, color: AppColors.darkGreen, size: 20),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                "Your pantry is fresh! Nothing expiring soon.",
+                style: TextStyle(
+                  color: AppColors.darkGreen,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final (urgentName, rescueCount) = insight;
+    final message = rescueCount > 0
+        ? "$urgentName is expiring soon — $rescueCount rescue recipe${rescueCount == 1 ? '' : 's'} ready now."
+        : "$urgentName is expiring soon — check Recipes to see what you can make.";
+
     return Container(
       padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
@@ -335,7 +458,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "Spinach expires tomorrow — 3 rescue recipes ready now.",
+                  message,
                   style: const TextStyle(
                     color: AppColors.textDark,
                     fontSize: 14,
@@ -349,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
           GestureDetector(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const RecipeScreen()),
+              MaterialPageRoute(builder: (_) => RecipeScreen(initialIngredientFilter: urgentName)),
             ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -534,6 +657,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _emptySectionCard({required bool failed, required String message}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: Center(
+        child: failed
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("⚠️ Couldn't load — check your connection", style: TextStyle(color: AppColors.textGray)),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _loadStats,
+                    child: const Text("Retry", style: TextStyle(color: AppColors.darkGreen, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              )
+            : Text(message, style: const TextStyle(color: AppColors.textGray)),
+      ),
+    );
+  }
+
   Widget _buildRecentIngredients() {
     final items = _recentIngredients;
 
@@ -545,13 +691,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (items.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-        child: const Center(
-          child: Text("No ingredients yet — add your first item!", style: TextStyle(color: AppColors.textGray)),
-        ),
+      return _emptySectionCard(
+        failed: _recentIngredientsFailed,
+        message: "🥕 No ingredients yet — add your first one!",
       );
     }
 
@@ -699,13 +841,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (recipes.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-        child: const Center(
-          child: Text("Add ingredients to see recipe matches", style: TextStyle(color: AppColors.textGray)),
-        ),
+      return _emptySectionCard(
+        failed: _topRecipesFailed,
+        message: "🍳 Add ingredients to see recipe suggestions",
       );
     }
 

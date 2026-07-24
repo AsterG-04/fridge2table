@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
@@ -26,12 +28,25 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
   @override
   void initState() {
     super.initState();
-    CookedHistoryStore.recordCook(
-      name: widget.recipe.name,
-      time: widget.recipe.time,
-      calories: widget.recipe.calories,
-      deductionSummary: widget.deductionSummary,
-    );
+    // Not awaited here (initState can't be async), but errors are no longer
+    // silently swallowed -- a failure that previously vanished with zero
+    // trace now at least shows up in logs instead of just leaving
+    // Statistics/Profile looking like nothing happened.
+    unawaited(_recordCook());
+  }
+
+  Future<void> _recordCook() async {
+    try {
+      await CookedHistoryStore.recordCook(
+        name: widget.recipe.name,
+        time: widget.recipe.time,
+        calories: widget.recipe.calories,
+        deductionSummary: widget.deductionSummary,
+        ingredientNames: widget.recipe.ingredients.map((i) => i.name).toList(),
+      );
+    } catch (error, stackTrace) {
+      debugPrint("[RecipeCompleteScreen] recordCook failed: $error\n$stackTrace");
+    }
   }
 
   (Color, Color) _catColors(String initials) {

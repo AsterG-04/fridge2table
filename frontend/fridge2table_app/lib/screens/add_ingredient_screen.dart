@@ -95,11 +95,24 @@ class _AddIngredientScreenState
     return (words[0][0] + words[1][0]).toUpperCase();
   }
 
+  bool _saving = false;
+
   Future<void> saveIngredient() async {
+    if (_saving) return;
+
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter an ingredient name")),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
 
     final ingredient = Ingredient(
       id: widget.existingIngredient?.id,
-      name: _nameController.text.trim(),
+      name: name,
       quantity:
           double.tryParse(_quantityController.text) ?? 0,
       unit: _selectedUnit ?? "",
@@ -110,15 +123,24 @@ class _AddIngredientScreenState
           : _expiryController.text.trim(),
     );
 
-    if (widget.isEditing) {
-      await ApiService.updateIngredient(
-        widget.existingIngredient!.id!,
-        ingredient,
+    try {
+      if (widget.isEditing) {
+        await ApiService.updateIngredient(
+          widget.existingIngredient!.id!,
+          ingredient,
+        );
+      } else {
+        await ApiService.addIngredient(
+          ingredient,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Couldn't save: ${e.toString().replaceFirst('Exception: ', '')}")),
       );
-    } else {
-      await ApiService.addIngredient(
-        ingredient,
-      );
+      setState(() => _saving = false);
+      return;
     }
 
     if (!mounted) return;
@@ -401,21 +423,28 @@ class _AddIngredientScreenState
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: saveIngredient,
+                          onPressed: _saving ? null : saveIngredient,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.darkGreen,
+                            disabledBackgroundColor: AppColors.darkGreen.withValues(alpha: 0.5),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          child: Text(
-                            widget.isEditing ? "Save Changes" : "Save Ingredient",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child: _saving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : Text(
+                                  widget.isEditing ? "Save Changes" : "Save Ingredient",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
