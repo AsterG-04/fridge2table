@@ -1,16 +1,9 @@
 # fridge2table_app
 
-A new Flutter project.
+The Flutter frontend for Fridge2Table. For project docs (setup, architecture, deployment, design system), see the repo root:
 
-## Getting Started
+- [README.md](../../README.md) — overview, tech stack, running locally, deployment
+- [docs/PROJECT_FLOW.md](../../docs/PROJECT_FLOW.md) — architecture and data flow
+- [docs/UI.md](../../docs/UI.md) — design system
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+This file is otherwise just the standard `flutter create` boilerplate.

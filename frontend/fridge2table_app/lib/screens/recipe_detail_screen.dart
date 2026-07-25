@@ -122,11 +122,61 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     return palette[initials.hashCode.abs() % palette.length];
   }
 
-  void _cookNow() {
+  Future<void> _cookNow() async {
+    final hasConflict = _matchedAllergens.isNotEmpty || _matchedDietConflicts.isNotEmpty;
+
+    if (hasConflict) {
+      final proceed = await _confirmCookDespiteConflict();
+      if (!proceed) return;
+    }
+
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => CookingModeScreen(recipe: widget.recipe)),
     );
+  }
+
+  /// Blocking confirmation before Cook Now proceeds, on top of (not instead
+  /// of) the passive warning banners above — those are easy to scroll past
+  /// without noticing, this makes sure the conflict is actually seen and
+  /// acknowledged before cooking starts. Never shown at all when neither
+  /// list has anything in it (e.g. "No Allergies" / "No Restrictions" is
+  /// set) since both lists are already empty in that case.
+  Future<bool> _confirmCookDespiteConflict() async {
+    final parts = <String>[];
+    if (_matchedAllergens.isNotEmpty) {
+      parts.add("contains ${_matchedAllergens.join(", ")}, which you've marked as an allergy");
+    }
+    if (_matchedDietConflicts.isNotEmpty) {
+      parts.add(
+        "conflicts with your ${_matchedDietConflicts.join(", ")} "
+        "preference${_matchedDietConflicts.length == 1 ? '' : 's'}",
+      );
+    }
+    final message = "This recipe ${parts.join(" and ")}. Are you sure you want to continue?";
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded, color: Color(0xFFC0392B), size: 32),
+        title: const Text("Heads up"),
+        content: Text(message, textAlign: TextAlign.center),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFC0392B)),
+            child: const Text("Continue Anyway"),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   @override

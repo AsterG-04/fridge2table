@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for the app's actual network calls (backend API, Supabase
+         auth/sync) in every build variant. The debug-only manifest
+         (android/app/src/debug/AndroidManifest.xml) also declares this, but
+         only for Flutter's own dev tooling (hot reload, etc.), and that
+         file is never merged into a release build. Without this line here
+         too, a release APK has no INTERNET permission at all and every
+         network call fails at the OS level (surfaces as a DNS/host-lookup
+         error, easy to mistake for a network or Supabase-specific problem). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>

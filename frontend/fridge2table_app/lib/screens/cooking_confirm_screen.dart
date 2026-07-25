@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
 import '../models/recipe_detail.dart';
-import '../services/recipe_cooking_service.dart';
+import 'adjust_quantities_screen.dart';
 import 'exclude_ingredients_screen.dart';
-import 'recipe_complete_screen.dart';
 
 class CookingConfirmScreen extends StatefulWidget {
   final RecipeDetail recipe;
@@ -17,33 +16,17 @@ class CookingConfirmScreen extends StatefulWidget {
 
 class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
   int _selected = 0; // 0 = by measurement, 1 = by estimate
-  bool _submitting = false;
 
-  Future<void> _confirm() async {
-    if (_submitting) return;
-
+  void _confirm() {
     if (_selected == 0) {
-      setState(() => _submitting = true);
-      try {
-        // Deducts each ingredient from the pantry via a separate API call —
-        // on a real network (vs an emulator's near-instant loopback) this
-        // can take a couple of seconds, so the button shows a spinner
-        // rather than appearing to just do nothing.
-        final deductions = await RecipeCookingService.deduct(widget.recipe, {});
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RecipeCompleteScreen(
-              recipe: widget.recipe,
-              deductionSummary: "Cooked by measurement — full deduction",
-              deductions: deductions,
-            ),
-          ),
-        );
-      } finally {
-        if (mounted) setState(() => _submitting = false);
-      }
+      // "By measurement" now leads to an adjustable-quantities step instead
+      // of deducting immediately — AdjustQuantitiesScreen handles its own
+      // loading state and calls RecipeCookingService.deduct() once the user
+      // confirms their amounts.
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => AdjustQuantitiesScreen(recipe: widget.recipe)),
+      );
     } else {
       Navigator.pushReplacement(
         context,
@@ -238,23 +221,16 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: _submitting ? null : _confirm,
+          onPressed: _confirm,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.darkGreen,
-            disabledBackgroundColor: AppColors.darkGreen.withValues(alpha: 0.5),
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          child: _submitting
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Text(
-                  "Confirm & Update Pantry",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
+          child: const Text(
+            "Confirm & Update Pantry",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
