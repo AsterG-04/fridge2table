@@ -103,6 +103,29 @@ def get_inventory(
     return get_ingredients(db, user_id)
 
 
+def _expiry_status_for(expiry_date: str | None, today: date) -> str:
+    """Same day-based classification used by /expiry-status, factored out so
+    /ai-recommendation can identify expiring ingredients without a second
+    round trip through that endpoint."""
+    if not expiry_date:
+        return "unknown"
+
+    try:
+        expiry = datetime.strptime(expiry_date, "%Y-%m-%d").date()
+        days_left = (expiry - today).days
+
+        if days_left < 0:
+            return "expired"
+        elif days_left == 0:
+            return "today"
+        elif days_left <= 3:
+            return "soon"
+        else:
+            return "fresh"
+    except ValueError:
+        return "unknown"
+
+
 @router.get("/expiry-status")
 def get_expiry_status(
     user_id: str,
@@ -116,28 +139,7 @@ def get_expiry_status(
 
     for item in ingredients:
 
-        status = "unknown"
-
-        if item.expiry_date:
-
-            try:
-                expiry = datetime.strptime(
-                    item.expiry_date, "%Y-%m-%d"
-                ).date()
-
-                days_left = (expiry - today).days
-
-                if days_left < 0:
-                    status = "expired"
-                elif days_left == 0:
-                    status = "today"
-                elif days_left <= 3:
-                    status = "soon"
-                else:
-                    status = "fresh"
-
-            except ValueError:
-                status = "unknown"
+        status = _expiry_status_for(item.expiry_date, today)
 
         results.append({
             "id": item.id,
@@ -253,9 +255,25 @@ def get_ai_recommendation(
     ingredients = get_ingredients(db, user_id)
     ingredient_names = [item.name for item in ingredients]
 
-    candidates = _matched_recipes(ingredient_names)[:10]
-    if not candidates:
+    all_candidates = _matched_recipes(ingredient_names)
+    if not all_candidates:
         return {"recipe_name": None, "source": "none"}
+
+    # Recipes that use an ingredient expiring today/soon take priority over
+    # plain highest-match_score -- among those, match_score still decides
+    # (all_candidates is already sorted by it). Falls back to the full
+    # candidate list when nothing is actually expiring soon.
+    today = date.today()
+    expiring_names = {
+        _normalize(item.name)
+        for item in ingredients
+        if _expiry_status_for(item.expiry_date, today) in ("today", "soon")
+    }
+    expiring_candidates = [
+        c for c in all_candidates
+        if expiring_names & set(c["matched_ingredients"])
+    ]
+    candidates = (expiring_candidates or all_candidates)[:10]
 
     if not OPENROUTER_API_KEY:
         return {"recipe_name": candidates[0]["name"], "source": "fallback"}

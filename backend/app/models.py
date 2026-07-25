@@ -9,7 +9,21 @@ def _utcnow():
 
 
 class Ingredient(Base):
-    __tablename__ = "ingredients"
+    # Deliberately NOT named "ingredients" -- when DATABASE_URL points at
+    # Supabase Postgres (production), that name collides with Supabase's
+    # own pre-existing "ingredients" table used by the separate cloud-sync
+    # feature (lib/services/supabase_service.dart), which has Row-Level
+    # Security enabled and an `id` column with no auto-increment default
+    # (its sync path always supplies `id` explicitly, so it never needed
+    # one). This backend's own create_ingredient() relies on the database
+    # generating `id`, and a direct SQLAlchemy connection has no Supabase
+    # JWT/session so RLS's `auth.uid()` is always NULL -- between those two
+    # mismatches, every insert failed outright (confirmed via Render
+    # reproduction: reads returned empty silently through RLS, writes hit
+    # `id`'s NOT NULL-no-default constraint). A separate table name sidesteps
+    # both issues rather than trying to reconcile two independently-evolved
+    # schemas that were never meant to share one table.
+    __tablename__ = "pantry_items"
 
     id = Column(Integer, primary_key=True, index=True)
 
