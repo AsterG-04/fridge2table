@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../models/recipe_detail.dart';
 import 'adjust_quantities_screen.dart';
-import 'exclude_ingredients_screen.dart';
 
 class CookingConfirmScreen extends StatefulWidget {
   final RecipeDetail recipe;
@@ -18,21 +17,20 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
   int _selected = 0; // 0 = by measurement, 1 = by estimate
 
   void _confirm() {
-    if (_selected == 0) {
-      // "By measurement" now leads to an adjustable-quantities step instead
-      // of deducting immediately — AdjustQuantitiesScreen handles its own
-      // loading state and calls RecipeCookingService.deduct() once the user
-      // confirms their amounts.
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => AdjustQuantitiesScreen(recipe: widget.recipe)),
-      );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => ExcludeIngredientsScreen(recipe: widget.recipe)),
-      );
-    }
+    // Both options lead to the same adjustable-quantities step now — "by
+    // estimate" just flags itself so that screen shows by-feel hints and
+    // leans on its skip toggle instead of assuming a "By measurement" flow.
+    // AdjustQuantitiesScreen handles its own loading state and calls
+    // RecipeCookingService.deduct() once the user confirms.
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdjustQuantitiesScreen(
+          recipe: widget.recipe,
+          byEstimate: _selected == 1,
+        ),
+      ),
+    );
   }
 
   @override
@@ -96,8 +94,15 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
             child: Container(
               width: 36,
               height: 36,
-              decoration: BoxDecoration(color: AppColors.background, shape: BoxShape.circle),
-              child: const Icon(Icons.chevron_left, color: AppColors.textDark, size: 20),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.chevron_left,
+                color: AppColors.textDark,
+                size: 20,
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -113,7 +118,11 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
           const SizedBox(height: 8),
           const Text(
             "How did you measure your ingredients while cooking?",
-            style: TextStyle(color: AppColors.textGray, fontSize: 13, height: 1.4),
+            style: TextStyle(
+              color: AppColors.textGray,
+              fontSize: 13,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -137,7 +146,9 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.darkGreen : AppColors.darkGreen.withValues(alpha: 0.11),
+            color: isSelected
+                ? AppColors.darkGreen
+                : AppColors.darkGreen.withValues(alpha: 0.11),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -147,7 +158,10 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
             Container(
               width: 56,
               height: 56,
-              decoration: BoxDecoration(color: AppColors.lightGreen, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                color: AppColors.lightGreen,
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Icon(icon, color: AppColors.darkGreen, size: 28),
             ),
             const SizedBox(width: 16),
@@ -157,17 +171,44 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(title, style: const TextStyle(color: AppColors.textDark, fontSize: 15, fontWeight: FontWeight.bold)),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: AppColors.textDark,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: AppColors.chipGreenBg, borderRadius: BorderRadius.circular(999)),
-                        child: Text(badge, style: const TextStyle(color: AppColors.chipGreenText, fontSize: 10, fontWeight: FontWeight.bold)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.chipGreenBg,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          badge,
+                          style: const TextStyle(
+                            color: AppColors.chipGreenText,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(description, style: const TextStyle(color: AppColors.textGray, fontSize: 12, height: 1.4)),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      color: AppColors.textGray,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -178,9 +219,15 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.darkGreen : Colors.transparent,
                 shape: BoxShape.circle,
-                border: Border.all(color: isSelected ? AppColors.darkGreen : AppColors.darkGreen.withValues(alpha: 0.11)),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.darkGreen
+                      : AppColors.darkGreen.withValues(alpha: 0.11),
+                ),
               ),
-              child: isSelected ? const Icon(Icons.check, size: 12, color: Colors.white) : null,
+              child: isSelected
+                  ? const Icon(Icons.check, size: 12, color: Colors.white)
+                  : null,
             ),
           ],
         ),
@@ -192,7 +239,10 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -202,7 +252,11 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
             child: Text(
               "This helps us keep your pantry accurate. If you cooked by estimate, "
               "you'll get to pick which ingredients to skip deducting next.",
-              style: const TextStyle(color: AppColors.textGray, fontSize: 12, height: 1.4),
+              style: const TextStyle(
+                color: AppColors.textGray,
+                fontSize: 12,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -225,7 +279,9 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.darkGreen,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
           child: const Text(
             "Confirm & Update Pantry",

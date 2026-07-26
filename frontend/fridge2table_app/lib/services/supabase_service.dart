@@ -103,16 +103,29 @@ class SupabaseService {
       final local = await ApiService.getInventory();
 
       if (local.isEmpty) {
-        return const SyncResult(success: true, message: "Nothing to sync", syncedCount: 0);
+        return const SyncResult(
+          success: true,
+          message: "Nothing to sync",
+          syncedCount: 0,
+        );
       }
 
       await _client
           .from(SupabaseConfig.ingredientsTable)
-          .upsert(local.map((i) => i.toSupabaseJson(userId)).toList());
+          // id alone isn't unique across accounts -- two users can both
+          // have a local id=1, so the upsert's conflict target has to be
+          // the (id, user_id) pair (see supabase_schema.sql's composite
+          // unique constraint), or this silently updates a different
+          // user's row via id collision instead of inserting a new one.
+          .upsert(
+            local.map((i) => i.toSupabaseJson(userId)).toList(),
+            onConflict: "id,user_id",
+          );
 
       return SyncResult(
         success: true,
-        message: "Synced ${local.length} item${local.length == 1 ? '' : 's'} to cloud",
+        message:
+            "Synced ${local.length} item${local.length == 1 ? '' : 's'} to cloud",
         syncedCount: local.length,
       );
     } catch (e) {
@@ -139,7 +152,10 @@ class SupabaseService {
       final cloud = cloudRows.map(Ingredient.fromJson).toList();
 
       final local = await ApiService.getInventory();
-      final localById = {for (final i in local) if (i.id != null) i.id!: i};
+      final localById = {
+        for (final i in local)
+          if (i.id != null) i.id!: i,
+      };
 
       int applied = 0;
       for (final cloudItem in cloud) {
@@ -151,7 +167,8 @@ class SupabaseService {
           continue;
         }
 
-        if (_isNewer(cloudItem.updatedAt, localItem.updatedAt) && localItem.id != null) {
+        if (_isNewer(cloudItem.updatedAt, localItem.updatedAt) &&
+            localItem.id != null) {
           await ApiService.updateIngredient(localItem.id!, cloudItem);
           applied++;
         }
@@ -187,8 +204,14 @@ class SupabaseService {
           .eq("user_id", userId);
       final cloud = cloudRows.map(Ingredient.fromJson).toList();
 
-      final localById = {for (final i in local) if (i.id != null) i.id!: i};
-      final cloudById = {for (final i in cloud) if (i.id != null) i.id!: i};
+      final localById = {
+        for (final i in local)
+          if (i.id != null) i.id!: i,
+      };
+      final cloudById = {
+        for (final i in cloud)
+          if (i.id != null) i.id!: i,
+      };
 
       final allIds = {...localById.keys, ...cloudById.keys};
       int changes = 0;
@@ -201,14 +224,24 @@ class SupabaseService {
           await ApiService.addIngredient(cloudItem);
           changes++;
         } else if (cloudItem == null && localItem != null) {
-          await _client.from(SupabaseConfig.ingredientsTable).upsert(localItem.toSupabaseJson(userId));
+          await _client
+              .from(SupabaseConfig.ingredientsTable)
+              .upsert(
+                localItem.toSupabaseJson(userId),
+                onConflict: "id,user_id",
+              );
           changes++;
         } else if (localItem != null && cloudItem != null) {
           if (_isNewer(cloudItem.updatedAt, localItem.updatedAt)) {
             await ApiService.updateIngredient(id, cloudItem);
             changes++;
           } else if (_isNewer(localItem.updatedAt, cloudItem.updatedAt)) {
-            await _client.from(SupabaseConfig.ingredientsTable).upsert(localItem.toSupabaseJson(userId));
+            await _client
+                .from(SupabaseConfig.ingredientsTable)
+                .upsert(
+                  localItem.toSupabaseJson(userId),
+                  onConflict: "id,user_id",
+                );
             changes++;
           }
         }
@@ -216,7 +249,8 @@ class SupabaseService {
 
       return SyncResult(
         success: true,
-        message: "Resolved sync — $changes change${changes == 1 ? '' : 's'} applied",
+        message:
+            "Resolved sync — $changes change${changes == 1 ? '' : 's'} applied",
         syncedCount: changes,
       );
     } catch (e) {
