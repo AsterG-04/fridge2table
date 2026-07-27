@@ -19,40 +19,125 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   List<String> _matchedAllergens = [];
   List<String> _matchedDietConflicts = [];
 
-  // Only diets with a clear-cut forbidden-ingredient list are checked here —
-  // Keto/Low Sugar are macronutrient targets, not a fixed set of banned
-  // ingredients, so flagging them the same way would be more guesswork than
-  // signal.
+  // Keto/Low Sugar are macronutrient targets rather than a fixed banned-
+  // ingredient list, so these two are rougher proxies than the others
+  // (flagging common high-carb/high-sugar ingredients rather than a
+  // definitive conflict) -- lower precision, but still real signal, and
+  // every diet in the preferences screen should trigger *something*
+  // rather than silently doing nothing.
+  static const List<String> _highCarbTerms = [
+    "bread",
+    "pasta",
+    "rice",
+    "potato",
+    "sugar",
+    "flour",
+    "noodle",
+    "corn",
+    "oats",
+    "cereal",
+    "honey",
+    "banana",
+  ];
+  static const List<String> _highSugarTerms = [
+    "sugar",
+    "honey",
+    "syrup",
+    "chocolate",
+    "candy",
+    "jam",
+  ];
+
   static const List<String> _meatTerms = [
-    "chicken", "beef", "pork", "lamb", "turkey", "bacon", "sausage", "ham",
-    "duck", "veal", "venison", "meat", "mince", "steak",
+    "chicken",
+    "beef",
+    "pork",
+    "lamb",
+    "turkey",
+    "bacon",
+    "sausage",
+    "ham",
+    "duck",
+    "veal",
+    "venison",
+    "meat",
+    "mince",
+    "steak",
   ];
   static const List<String> _seafoodTerms = [
-    "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "lobster", "seafood",
-    "anchovy", "sardine", "cod", "shellfish", "squid", "octopus",
+    "fish",
+    "salmon",
+    "tuna",
+    "shrimp",
+    "prawn",
+    "crab",
+    "lobster",
+    "seafood",
+    "anchovy",
+    "sardine",
+    "cod",
+    "shellfish",
+    "squid",
+    "octopus",
   ];
   static const List<String> _dairyTerms = [
-    "milk", "cheese", "butter", "cream", "yogurt", "yoghurt", "dairy", "ghee",
+    "milk",
+    "cheese",
+    "butter",
+    "cream",
+    "yogurt",
+    "yoghurt",
+    "dairy",
+    "ghee",
   ];
   static const List<String> _porkTerms = ["pork", "bacon", "ham", "lard"];
   static const List<String> _alcoholTerms = [
-    "wine", "beer", "rum", "alcohol", "vodka", "whiskey", "brandy",
+    "wine",
+    "beer",
+    "rum",
+    "alcohol",
+    "vodka",
+    "whiskey",
+    "brandy",
   ];
   static const List<String> _shellfishTerms = [
-    "shrimp", "prawn", "crab", "lobster", "shellfish", "clam", "oyster", "mussel",
+    "shrimp",
+    "prawn",
+    "crab",
+    "lobster",
+    "shellfish",
+    "clam",
+    "oyster",
+    "mussel",
   ];
   static const List<String> _glutenTerms = [
-    "wheat", "flour", "barley", "rye", "bread", "pasta", "noodle", "gluten",
+    "wheat",
+    "flour",
+    "barley",
+    "rye",
+    "bread",
+    "pasta",
+    "noodle",
+    "gluten",
   ];
 
   static const Map<String, List<String>> _dietForbiddenTerms = {
     "Vegetarian": [..._meatTerms, ..._seafoodTerms],
-    "Vegan": [..._meatTerms, ..._seafoodTerms, ..._dairyTerms, "egg", "honey", "gelatin"],
+    "Vegan": [
+      ..._meatTerms,
+      ..._seafoodTerms,
+      ..._dairyTerms,
+      "egg",
+      "honey",
+      "gelatin",
+    ],
     "Pescatarian": _meatTerms,
     "Halal": [..._porkTerms, ..._alcoholTerms],
     "Kosher": [..._porkTerms, ..._shellfishTerms],
     "Gluten-Free": _glutenTerms,
     "Dairy-Free": _dairyTerms,
+    "Keto": _highCarbTerms,
+    "Low Sugar": _highSugarTerms,
   };
 
   @override
@@ -123,7 +208,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 
   Future<void> _cookNow() async {
-    final hasConflict = _matchedAllergens.isNotEmpty || _matchedDietConflicts.isNotEmpty;
+    final hasConflict =
+        _matchedAllergens.isNotEmpty || _matchedDietConflicts.isNotEmpty;
 
     if (hasConflict) {
       final proceed = await _confirmCookDespiteConflict();
@@ -133,7 +219,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     if (!mounted) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => CookingModeScreen(recipe: widget.recipe)),
+      MaterialPageRoute(
+        builder: (_) => CookingModeScreen(recipe: widget.recipe),
+      ),
     );
   }
 
@@ -146,7 +234,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   Future<bool> _confirmCookDespiteConflict() async {
     final parts = <String>[];
     if (_matchedAllergens.isNotEmpty) {
-      parts.add("contains ${_matchedAllergens.join(", ")}, which you've marked as an allergy");
+      parts.add(
+        "contains ${_matchedAllergens.join(", ")}, which you've marked as an allergy",
+      );
     }
     if (_matchedDietConflicts.isNotEmpty) {
       parts.add(
@@ -154,13 +244,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         "preference${_matchedDietConflicts.length == 1 ? '' : 's'}",
       );
     }
-    final message = "This recipe ${parts.join(" and ")}. Are you sure you want to continue?";
+    final message =
+        "This recipe ${parts.join(" and ")}. Are you sure you want to continue?";
 
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.warning_amber_rounded, color: Color(0xFFC0392B), size: 32),
+        icon: const Icon(
+          Icons.warning_amber_rounded,
+          color: Color(0xFFC0392B),
+          size: 32,
+        ),
         title: const Text("Heads up"),
         content: Text(message, textAlign: TextAlign.center),
         actions: [
@@ -170,7 +265,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFC0392B)),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFC0392B),
+            ),
             child: const Text("Continue Anyway"),
           ),
         ],
@@ -227,10 +324,30 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           title: "Nutrition per serving",
                           child: Row(
                             children: [
-                              Expanded(child: _nutritionStat("${recipe.nutrition.calories}", "Calories")),
-                              Expanded(child: _nutritionStat(recipe.nutrition.protein, "Protein")),
-                              Expanded(child: _nutritionStat(recipe.nutrition.carbs, "Carbs")),
-                              Expanded(child: _nutritionStat(recipe.nutrition.fat, "Fat")),
+                              Expanded(
+                                child: _nutritionStat(
+                                  "${recipe.nutrition.calories}",
+                                  "Calories",
+                                ),
+                              ),
+                              Expanded(
+                                child: _nutritionStat(
+                                  recipe.nutrition.protein,
+                                  "Protein",
+                                ),
+                              ),
+                              Expanded(
+                                child: _nutritionStat(
+                                  recipe.nutrition.carbs,
+                                  "Carbs",
+                                ),
+                              ),
+                              Expanded(
+                                child: _nutritionStat(
+                                  recipe.nutrition.fat,
+                                  "Fat",
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -262,8 +379,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               child: Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.7), shape: BoxShape.circle),
-                child: const Icon(Icons.chevron_left, color: AppColors.darkGreen, size: 22),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.chevron_left,
+                  color: AppColors.darkGreen,
+                  size: 22,
+                ),
               ),
             ),
           ),
@@ -275,7 +399,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               child: Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.7), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                ),
                 child: Icon(
                   _saved ? Icons.bookmark : Icons.bookmark_outline,
                   color: AppColors.darkGreen,
@@ -290,8 +417,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             child: Container(
               width: 64,
               height: 64,
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-              child: const Icon(Icons.restaurant, color: AppColors.darkGreen, size: 28),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.restaurant,
+                color: AppColors.darkGreen,
+                size: 28,
+              ),
             ),
           ),
           Positioned(
@@ -343,15 +477,24 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   runSpacing: 8,
                   children: [
                     _statChip(Icons.timer_outlined, "${recipe.time} prep"),
-                    _statChip(Icons.outdoor_grill_outlined, "${recipe.cookTime} cook"),
-                    _statChip(Icons.local_fire_department_outlined, "${recipe.calories} cal"),
+                    _statChip(
+                      Icons.outdoor_grill_outlined,
+                      "${recipe.cookTime} cook",
+                    ),
+                    _statChip(
+                      Icons.local_fire_department_outlined,
+                      "${recipe.calories} cal",
+                    ),
                     _statChip(Icons.bar_chart, recipe.difficulty),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.chipGreenBg,
                   borderRadius: BorderRadius.circular(999),
@@ -378,7 +521,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       children: [
         Icon(icon, size: 14, color: AppColors.textGray),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(color: AppColors.textGray, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textGray, fontSize: 12),
+        ),
       ],
     );
   }
@@ -390,12 +536,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFFDF2F0),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFC0392B).withValues(alpha: 0.2)),
+        border: Border.all(
+          color: const Color(0xFFC0392B).withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFC0392B)),
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 16,
+            color: Color(0xFFC0392B),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -434,7 +586,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFFEF9E7),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD68910).withValues(alpha: 0.25)),
+        border: Border.all(
+          color: const Color(0xFFD68910).withValues(alpha: 0.25),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,13 +672,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
           child,
@@ -540,27 +701,58 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         Container(
           width: 44,
           height: 44,
-          decoration: BoxDecoration(color: chipBg, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: chipBg,
+            borderRadius: BorderRadius.circular(12),
+          ),
           alignment: Alignment.center,
-          child: Text(ing.initials, style: TextStyle(color: chipText, fontWeight: FontWeight.bold, fontSize: 12)),
+          child: Text(
+            ing.initials,
+            style: TextStyle(
+              color: chipText,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             ing.name,
-            style: const TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-        Text(ing.quantity, style: const TextStyle(color: AppColors.textGray, fontSize: 12)),
+        Text(
+          ing.quantity,
+          style: const TextStyle(color: AppColors.textGray, fontSize: 12),
+        ),
         const SizedBox(width: 8),
         if (ing.missing)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(color: const Color(0xFFFDF2F0), borderRadius: BorderRadius.circular(999)),
-            child: const Text("Missing", style: TextStyle(color: Color(0xFFC0392B), fontSize: 10, fontWeight: FontWeight.bold)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFDF2F0),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              "Missing",
+              style: TextStyle(
+                color: Color(0xFFC0392B),
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           )
         else
-          const Icon(Icons.check_circle, color: AppColors.chipGreenText, size: 16),
+          const Icon(
+            Icons.check_circle,
+            color: AppColors.chipGreenText,
+            size: 16,
+          ),
       ],
     );
   }
@@ -568,9 +760,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   Widget _nutritionStat(String value, String label) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(color: AppColors.textDark, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: AppColors.textDark,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(color: AppColors.textGray, fontSize: 11)),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textGray, fontSize: 11),
+        ),
       ],
     );
   }
@@ -590,12 +792,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               onPressed: () => setState(() => _saved = !_saved),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: AppColors.darkGreen.withValues(alpha: 0.11)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                side: BorderSide(
+                  color: AppColors.darkGreen.withValues(alpha: 0.11),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: Text(
                 _saved ? "Saved" : "Save Recipe",
-                style: const TextStyle(color: AppColors.darkGreen, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: AppColors.darkGreen,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -604,11 +813,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             child: ElevatedButton.icon(
               onPressed: _cookNow,
               icon: const Icon(Icons.play_arrow, color: Colors.white, size: 18),
-              label: const Text("Cook Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              label: const Text(
+                "Cook Now",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.darkGreen,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ),

@@ -55,7 +55,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return items.where((item) {
       final matchesQuery =
           _query.isEmpty || item.name.toLowerCase().contains(_query);
-      final matchesFilter = _activeFilter == "All" ||
+      final matchesFilter =
+          _activeFilter == "All" ||
           item.category == _filterToCategory[_activeFilter];
       return matchesQuery && matchesFilter;
     }).toList();
@@ -137,8 +138,34 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (result == true) _refresh();
   }
 
+  Future<bool> _confirmRemove(String name) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text("Remove $name from pantry?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFC0392B),
+            ),
+            child: const Text("Remove"),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   Future<void> _deleteIngredient(Ingredient ingredient) async {
     if (ingredient.id == null) return;
+    final confirmed = await _confirmRemove(ingredient.name);
+    if (!confirmed) return;
+    if (!mounted) return;
     await ApiService.deleteIngredient(ingredient.id!);
     _refresh();
   }
@@ -194,7 +221,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                       ? "Your pantry is empty — tap + to add ingredients"
                                       : "No ingredients match your search",
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(color: AppColors.textGray),
+                                  style: const TextStyle(
+                                    color: AppColors.textGray,
+                                  ),
                                 ),
                               ),
                             )
@@ -241,7 +270,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     color: Colors.white.withValues(alpha: 0.18),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.chevron_left,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
               const Expanded(
@@ -259,7 +292,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ExpiryMonitorScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const ExpiryMonitorScreen(),
+                  ),
                 ),
                 child: Container(
                   width: 36,
@@ -268,7 +303,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     color: Colors.white.withValues(alpha: 0.18),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.event_busy_outlined, color: Colors.white, size: 16),
+                  child: const Icon(
+                    Icons.event_busy_outlined,
+                    color: Colors.white,
+                    size: 16,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -281,7 +320,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     color: Colors.white.withValues(alpha: 0.18),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 16),
+                  child: const Icon(
+                    Icons.camera_alt_outlined,
+                    color: Colors.white,
+                    size: 16,
+                  ),
                 ),
               ),
             ],
@@ -316,7 +359,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
             Expanded(
               child: TextField(
                 controller: _searchController,
-                onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+                onChanged: (v) =>
+                    setState(() => _query = v.trim().toLowerCase()),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
                   isDense: true,
@@ -391,11 +435,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: chipBg, borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(
+              color: chipBg,
+              borderRadius: BorderRadius.circular(20),
+            ),
             alignment: Alignment.center,
             child: Text(
               _initials(item.name),
-              style: TextStyle(color: chipText, fontWeight: FontWeight.bold, fontSize: 12),
+              style: TextStyle(
+                color: chipText,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -413,7 +464,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 Text(
                   "$quantityLabel ${item.unit} · ${item.category ?? 'Uncategorized'}",
-                  style: const TextStyle(color: AppColors.textGray, fontSize: 12),
+                  style: const TextStyle(
+                    color: AppColors.textGray,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -422,11 +476,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: tagBg, borderRadius: BorderRadius.circular(999)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: tagBg,
+                  borderRadius: BorderRadius.circular(999),
+                ),
                 child: Text(
                   tagLabel,
-                  style: TextStyle(color: tagText, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: tagText,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
@@ -441,7 +505,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         color: AppColors.background,
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: const Icon(Icons.edit_outlined, size: 13, color: AppColors.textGray),
+                      child: const Icon(
+                        Icons.edit_outlined,
+                        size: 13,
+                        color: AppColors.textGray,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -454,7 +522,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         color: AppColors.background,
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: const Icon(Icons.delete_outline, size: 13, color: Color(0xFFC0392B)),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        size: 13,
+                        color: Color(0xFFC0392B),
+                      ),
                     ),
                   ),
                 ],

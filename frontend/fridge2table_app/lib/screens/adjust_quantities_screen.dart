@@ -93,8 +93,24 @@ class _AdjustQuantitiesScreenState extends State<AdjustQuantitiesScreen> {
     });
   }
 
+  /// True if [p]'s entered amount is more than the pantry actually has --
+  /// skipped/not-in-pantry ingredients never count, since nothing gets
+  /// deducted for them regardless of what the field says.
+  bool _exceedsAvailable(PlannedIngredientUsage p) {
+    final item = p.pantryItem;
+    if (item == null || _skipped.contains(p.name)) return false;
+    final parsed = double.tryParse(_controllers[p.name]?.text.trim() ?? "");
+    return parsed != null && parsed > item.quantity;
+  }
+
+  bool get _hasValidationError {
+    final planned = _planned;
+    if (planned == null) return false;
+    return planned.any(_exceedsAvailable);
+  }
+
   Future<void> _confirm() async {
-    if (_submitting) return;
+    if (_submitting || _hasValidationError) return;
     setState(() => _submitting = true);
 
     try {
@@ -237,10 +253,14 @@ class _AdjustQuantitiesScreenState extends State<AdjustQuantitiesScreen> {
     final item = p.pantryItem;
     final isSkipped = _skipped.contains(p.name);
     final hint = _hintFor(p.name);
+    final exceedsAvailable = _exceedsAvailable(p);
 
     String subtitle;
     if (item == null) {
       subtitle = "Not in your pantry — nothing to deduct";
+    } else if (exceedsAvailable) {
+      subtitle =
+          "Only ${_fmt(item.quantity)} ${item.unit} available — reduce amount or add more to pantry first";
     } else if (isSkipped) {
       subtitle = "Won't be deducted from your pantry";
     } else if (widget.byEstimate && hint != null) {
@@ -292,9 +312,14 @@ class _AdjustQuantitiesScreenState extends State<AdjustQuantitiesScreen> {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: AppColors.textGray,
+                  style: TextStyle(
+                    color: exceedsAvailable
+                        ? const Color(0xFFC0392B)
+                        : AppColors.textGray,
                     fontSize: 12,
+                    fontWeight: exceedsAvailable
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
               ],
@@ -327,6 +352,7 @@ class _AdjustQuantitiesScreenState extends State<AdjustQuantitiesScreen> {
               child: TextField(
                 controller: _controllers[p.name],
                 enabled: !isSkipped,
+                onChanged: (_) => setState(() {}),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -342,9 +368,19 @@ class _AdjustQuantitiesScreenState extends State<AdjustQuantitiesScreen> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(
-                      color: AppColors.darkGreen.withValues(alpha: 0.15),
+                      color: exceedsAvailable
+                          ? const Color(0xFFC0392B)
+                          : AppColors.darkGreen.withValues(alpha: 0.15),
                     ),
                   ),
+                  focusedBorder: exceedsAvailable
+                      ? OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFC0392B),
+                          ),
+                        )
+                      : null,
                   suffixText: item.unit,
                   suffixStyle: const TextStyle(
                     color: AppColors.textGray,
@@ -373,7 +409,10 @@ class _AdjustQuantitiesScreenState extends State<AdjustQuantitiesScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: (_submitting || _planned == null) ? null : _confirm,
+              onPressed:
+                  (_submitting || _planned == null || _hasValidationError)
+                  ? null
+                  : _confirm,
               icon: _submitting
                   ? const SizedBox(
                       width: 16,

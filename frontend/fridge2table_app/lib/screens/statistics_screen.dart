@@ -269,7 +269,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       children: [
         Expanded(child: _statCard(Icons.kitchen_outlined, _totalItems?.toString() ?? "—", "Items in Pantry")),
         const SizedBox(width: 8),
-        Expanded(child: _statCard(Icons.warning_amber_rounded, _expiredCount?.toString() ?? "—", "Expired")),
+        Expanded(child: _statCard(Icons.warning_amber_rounded, _expiredCount?.toString() ?? "—", "Items Expired")),
         const SizedBox(width: 8),
         Expanded(child: _statCard(Icons.restaurant_menu, _recipesMatched?.toString() ?? "—", "Recipes Matched")),
       ],

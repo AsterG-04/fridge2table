@@ -4,23 +4,24 @@ import '../constants/colors.dart';
 import '../services/api_service.dart';
 import '../widgets/async_state.dart';
 import 'recipe_screen.dart';
+import 'waste_control_screen.dart';
 
 class ExpiryMonitorScreen extends StatefulWidget {
   const ExpiryMonitorScreen({super.key});
 
   @override
-  State<ExpiryMonitorScreen> createState() =>
-      _ExpiryMonitorScreenState();
+  State<ExpiryMonitorScreen> createState() => _ExpiryMonitorScreenState();
 }
 
-
-class _ExpiryMonitorScreenState
-    extends State<ExpiryMonitorScreen> {
-
+class _ExpiryMonitorScreenState extends State<ExpiryMonitorScreen> {
   late Future<List<Map<String, dynamic>>> expiryStatus;
 
   static const List<String> _groupOrder = [
-    "expired", "today", "soon", "fresh", "unknown"
+    "expired",
+    "today",
+    "soon",
+    "fresh",
+    "unknown",
   ];
 
   static const Map<String, String> _groupLabels = {
@@ -65,7 +66,9 @@ class _ExpiryMonitorScreenState
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFC0392B)),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFC0392B),
+            ),
             child: const Text("Delete"),
           ),
         ],
@@ -85,7 +88,9 @@ class _ExpiryMonitorScreenState
     _refresh();
   }
 
-  Future<void> _deleteAllExpired(List<Map<String, dynamic>> expiredItems) async {
+  Future<void> _deleteAllExpired(
+    List<Map<String, dynamic>> expiredItems,
+  ) async {
     if (expiredItems.isEmpty) return;
     final confirmed = await _confirmDelete(
       "Delete all expired items?",
@@ -160,15 +165,24 @@ class _ExpiryMonitorScreenState
     }
 
     const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
     return "${months[expiry.month - 1]} ${expiry.day}";
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -202,7 +216,11 @@ class _ExpiryMonitorScreenState
                 color: Colors.white.withValues(alpha: 0.18),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+              child: const Icon(
+                Icons.chevron_left,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
           const Expanded(
@@ -226,7 +244,11 @@ class _ExpiryMonitorScreenState
                 color: Colors.white.withValues(alpha: 0.18),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.help_outline, color: Colors.white, size: 18),
+              child: const Icon(
+                Icons.help_outline,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -236,7 +258,6 @@ class _ExpiryMonitorScreenState
 
   Widget _buildBody() {
     return FutureBuilder<List<Map<String, dynamic>>>(
-
       future: expiryStatus,
 
       builder: (context, snapshot) {
@@ -249,7 +270,7 @@ class _ExpiryMonitorScreenState
           emptySubtitle: "Add items to your pantry to monitor expiry dates",
           builder: (context, items) {
             final Map<String, List<Map<String, dynamic>>> grouped = {
-              for (final status in _groupOrder) status: []
+              for (final status in _groupOrder) status: [],
             };
 
             for (final item in items) {
@@ -275,7 +296,6 @@ class _ExpiryMonitorScreenState
   }
 
   Widget _buildGroup(String status, List<Map<String, dynamic>> items) {
-
     final color = _groupColors[status]!;
     final label = _groupLabels[status]!;
 
@@ -289,10 +309,7 @@ class _ExpiryMonitorScreenState
               Container(
                 width: 10,
                 height: 10,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
               Text(
@@ -308,7 +325,10 @@ class _ExpiryMonitorScreenState
                 GestureDetector(
                   onTap: () => _deleteAllExpired(items),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFC0392B).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(999),
@@ -316,7 +336,11 @@ class _ExpiryMonitorScreenState
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.delete_sweep_outlined, size: 14, color: Color(0xFFC0392B)),
+                        Icon(
+                          Icons.delete_sweep_outlined,
+                          size: 14,
+                          color: Color(0xFFC0392B),
+                        ),
                         SizedBox(width: 4),
                         Text(
                           "Delete All Expired",
@@ -405,77 +429,193 @@ class _ExpiryMonitorScreenState
     }
   }
 
+  /// Which Waste Control tab (and search term, where a direct match
+  /// exists) best fits an expired ingredient -- deliberately simple
+  /// keyword/category rules rather than a real recommendation engine,
+  /// since the goal is just to land the user on the right section.
+  (int, String) _wasteControlTarget(String name, String? category) {
+    final n = name.toLowerCase();
+    if (n.contains("milk")) return (1, "milk");
+    if (n.contains("bread")) return (1, "bread");
+    if (category == "Vegetables") return (0, "");
+    return (1, "");
+  }
+
+  Future<void> _showExpiredSheet(String name, String? category) async {
+    final (tab, query) = _wasteControlTarget(name, category);
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Color(0xFFC0392B),
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "$name has expired",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "This is expired — not safe to cook with. But you can still use it:",
+              style: TextStyle(
+                color: AppColors.textGray,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text("Not Now"),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.darkGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text("Show Me How"),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              WasteControlScreen(initialTab: tab, initialSearch: query),
+        ),
+      );
+    }
+  }
+
   Widget _buildItemCard(Map<String, dynamic> item, String status) {
     final (chipBg, chipText) = _catColors(item["category"]);
     final name = item["name"] ?? "";
 
     return GestureDetector(
-      onTap: () => _showRecipeSheet(name),
+      onTap: () => status == "expired"
+          ? _showExpiredSheet(name, item["category"])
+          : _showRecipeSheet(name),
       child: Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(color: chipBg, borderRadius: BorderRadius.circular(20)),
-            alignment: Alignment.center,
-            child: Text(
-              _initials(name),
-              style: TextStyle(color: chipText, fontWeight: FontWeight.bold, fontSize: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: chipBg,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                _initials(name),
+                style: TextStyle(
+                  color: chipText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    color: AppColors.textDark,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      color: AppColors.textDark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                Text(
-                  _subtitleFor(status, item["expiry_date"]),
-                  style: const TextStyle(color: AppColors.textGray, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: _viewRecipes,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(999),
+                  Text(
+                    _subtitleFor(status, item["expiry_date"]),
+                    style: const TextStyle(
+                      color: AppColors.textGray,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.restaurant_menu, size: 14, color: AppColors.darkGreen),
             ),
-          ),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: () => _deleteItem(item["id"], name),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(999),
+            GestureDetector(
+              onTap: () => status == "expired"
+                  ? _showExpiredSheet(name, item["category"])
+                  : _viewRecipes(),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Icon(
+                  Icons.restaurant_menu,
+                  size: 14,
+                  color: AppColors.darkGreen,
+                ),
               ),
-              child: const Icon(Icons.delete_outline, size: 14, color: Color(0xFFC0392B)),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: () => _deleteItem(item["id"], name),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Icon(
+                  Icons.delete_outline,
+                  size: 14,
+                  color: Color(0xFFC0392B),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
