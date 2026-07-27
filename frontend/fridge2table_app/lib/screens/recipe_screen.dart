@@ -54,9 +54,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
       _searchController.text = ingredient;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Recipes using $ingredient")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Recipes using $ingredient")));
       });
     }
   }
@@ -82,7 +82,8 @@ class _RecipeScreenState extends State<RecipeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => RecipeDetailScreen(recipe: RecipeDetail.fromJson(match)),
+        builder: (_) =>
+            RecipeDetailScreen(recipe: RecipeDetail.fromJson(match)),
       ),
     );
   }
@@ -116,8 +117,11 @@ class _RecipeScreenState extends State<RecipeScreen> {
     switch (_selectedFilter) {
       case 'AI Picks':
         result = List<Map<String, dynamic>>.of(result)
-          ..sort((a, b) => ((b['match_score'] ?? 0) as num)
-              .compareTo((a['match_score'] ?? 0) as num));
+          ..sort(
+            (a, b) => ((b['match_score'] ?? 0) as num).compareTo(
+              (a['match_score'] ?? 0) as num,
+            ),
+          );
         break;
       case 'Quick':
         result = result.where((r) => _minutesOf(r['prep_time']) <= 20);
@@ -134,8 +138,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
         );
         break;
       case 'Cooked':
-        final cookedNames =
-            CookedHistoryStore.entries.map((e) => e.name).toSet();
+        final cookedNames = CookedHistoryStore.entries
+            .map((e) => e.name)
+            .toSet();
         result = result.where(
           (r) => cookedNames.contains(r['name']?.toString() ?? ''),
         );
@@ -148,8 +153,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
         final name = (r['name'] ?? '').toString().toLowerCase();
         if (name.contains(query)) return true;
         final ingredients = (r['ingredients'] as List?) ?? [];
-        return ingredients
-            .any((i) => i.toString().toLowerCase().contains(query));
+        return ingredients.any(
+          (i) => i.toString().toLowerCase().contains(query),
+        );
       });
     }
 
@@ -338,7 +344,11 @@ class _RecipeScreenState extends State<RecipeScreen> {
                   color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -392,7 +402,11 @@ class _RecipeScreenState extends State<RecipeScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.restaurant, size: 40, color: Color(0xFF9CA3AF)),
+                      const Icon(
+                        Icons.restaurant,
+                        size: 40,
+                        color: Color(0xFF9CA3AF),
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         items.isEmpty
@@ -409,7 +423,10 @@ class _RecipeScreenState extends State<RecipeScreen> {
                         const SizedBox(height: 4),
                         const Text(
                           "Try a different search or filter",
-                          style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+                          style: TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ],
@@ -473,12 +490,20 @@ class _RecipeScreenState extends State<RecipeScreen> {
   Widget _buildRecipeCard(Map<String, dynamic> recipe, List<Color> gradient) {
     final name = recipe['name'] ?? '';
     final isSaved = SavedRecipesStore.isSaved(name.toString());
-    final isAiPick = _aiRecommendedName != null && name.toString() == _aiRecommendedName;
+    final isAiPick =
+        _aiRecommendedName != null && name.toString() == _aiRecommendedName;
     final score = recipe['match_score'] ?? 0;
     final prepTime = recipe['prep_time'] ?? '20 min';
     final difficulty = recipe['difficulty'] ?? 'Easy';
     final dietTags = recipe['diet_tags'] as List?;
-    final dietTag = dietTags != null && dietTags.isNotEmpty ? dietTags.first.toString() : null;
+    final dietTag = dietTags != null && dietTags.isNotEmpty
+        ? dietTags.first.toString()
+        : null;
+    final hasExpired =
+        ((recipe['expired_ingredients'] as List?) ?? []).isNotEmpty;
+    final hasExpiring =
+        !hasExpired &&
+        ((recipe['expiring_ingredients'] as List?) ?? []).isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -486,9 +511,8 @@ class _RecipeScreenState extends State<RecipeScreen> {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => RecipeDetailScreen(
-              recipe: RecipeDetail.fromJson(recipe),
-            ),
+            builder: (_) =>
+                RecipeDetailScreen(recipe: RecipeDetail.fromJson(recipe)),
           ),
         ),
         child: Container(
@@ -552,23 +576,47 @@ class _RecipeScreenState extends State<RecipeScreen> {
               Positioned(
                 top: 12,
                 right: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '$score%',
-                    style: const TextStyle(
-                      color: Color(0xFF1B4332),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
+                child: Row(
+                  children: [
+                    if (hasExpired || hasExpiring) ...[
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          hasExpired
+                              ? Icons.warning_amber_rounded
+                              : Icons.watch_later_outlined,
+                          size: 13,
+                          color: hasExpired
+                              ? const Color(0xFFC0392B)
+                              : const Color(0xFFD68910),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '$score%',
+                        style: const TextStyle(
+                          color: Color(0xFF1B4332),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
               Positioned(
@@ -599,7 +647,10 @@ class _RecipeScreenState extends State<RecipeScreen> {
                   bottom: 12,
                   right: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFD700),
                       borderRadius: BorderRadius.circular(20),
@@ -607,7 +658,11 @@ class _RecipeScreenState extends State<RecipeScreen> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.auto_awesome, size: 10, color: Color(0xFF1B4332)),
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 10,
+                          color: Color(0xFF1B4332),
+                        ),
                         SizedBox(width: 3),
                         Text(
                           'AI Recommended',

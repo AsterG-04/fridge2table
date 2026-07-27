@@ -7,11 +7,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/api_config.dart';
 import '../config/supabase_config.dart';
 import '../models/ingredient.dart';
+import 'delete_tombstones.dart';
 import 'supabase_service.dart';
 
-
 class ApiService {
-
   static String get baseUrl => ApiConfig.baseUrl;
 
   static const _timeout = Duration(seconds: 10);
@@ -33,10 +32,9 @@ class ApiService {
   }
 
   static Uri _uri(String path, [Map<String, String>? extraParams]) {
-    return Uri.parse("$baseUrl$path").replace(queryParameters: {
-      "user_id": _userId,
-      ...?extraParams,
-    });
+    return Uri.parse(
+      "$baseUrl$path",
+    ).replace(queryParameters: {"user_id": _userId, ...?extraParams});
   }
 
   /// Runs an HTTP call with a consistent timeout and turns the handful of
@@ -54,9 +52,9 @@ class ApiService {
       throw Exception(
         ApiConfig.usingAdbReverse
             ? "The server didn't respond in time. Run `adb reverse tcp:8000 "
-                "tcp:8000` and make sure the backend is running, then try again."
+                  "tcp:8000` and make sure the backend is running, then try again."
             : "The server didn't respond in time. Check the backend is "
-                "running and reachable at ${ApiConfig.baseUrl}.",
+                  "running and reachable at ${ApiConfig.baseUrl}.",
       );
     } on SocketException {
       // On a physical device resolved via the adb-reverse address, a
@@ -69,11 +67,11 @@ class ApiService {
       throw Exception(
         ApiConfig.usingAdbReverse
             ? "Can't reach the app's server. Run this in a terminal, then "
-                "try again:\n\nadb reverse tcp:8000 tcp:8000\n\n"
-                "(This is not your phone's internet connection — the backend "
-                "runs on your dev machine and needs this USB port forward.)"
+                  "try again:\n\nadb reverse tcp:8000 tcp:8000\n\n"
+                  "(This is not your phone's internet connection — the backend "
+                  "runs on your dev machine and needs this USB port forward.)"
             : "Can't reach the app's server at ${ApiConfig.baseUrl}. Check "
-                "the backend is running and the address is correct.",
+                  "the backend is running and the address is correct.",
       );
     }
   }
@@ -85,125 +83,121 @@ class ApiService {
     if (response.statusCode == 200) {
       List data = jsonDecode(response.body);
 
-      return data
-          .map((item) => Ingredient.fromJson(item))
-          .toList();
+      return data.map((item) => Ingredient.fromJson(item)).toList();
     }
 
-    throw Exception("Failed to load inventory (server returned ${response.statusCode})");
+    throw Exception(
+      "Failed to load inventory (server returned ${response.statusCode})",
+    );
   }
-
-
 
   // POST ingredient
-  static Future<void> addIngredient(
-      Ingredient ingredient) async {
-
-    final response = await _send(() => http.post(
-      _uri("/ingredient"),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode(
-        ingredient.toJson()
+  static Future<void> addIngredient(Ingredient ingredient) async {
+    final response = await _send(
+      () => http.post(
+        _uri("/ingredient"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(ingredient.toJson()),
       ),
-    ));
+    );
 
     if (response.statusCode != 200) {
-      throw Exception("Failed to add ingredient (server returned ${response.statusCode})");
+      throw Exception(
+        "Failed to add ingredient (server returned ${response.statusCode})",
+      );
     }
   }
 
-    static Future<void> updateIngredient(
-      int id, Ingredient ingredient) async {
-
-    final response = await _send(() => http.put(
-      _uri("/ingredient/$id"),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode(
-        ingredient.toJson()
+  static Future<void> updateIngredient(int id, Ingredient ingredient) async {
+    final response = await _send(
+      () => http.put(
+        _uri("/ingredient/$id"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(ingredient.toJson()),
       ),
-    ));
+    );
 
     if (response.statusCode != 200) {
-      throw Exception("Failed to update ingredient (server returned ${response.statusCode})");
+      throw Exception(
+        "Failed to update ingredient (server returned ${response.statusCode})",
+      );
     }
   }
 
-    static Future<void> deleteIngredient(
-      int id) async {
-
+  static Future<void> deleteIngredient(int id) async {
     final response = await _send(() => http.delete(_uri("/ingredient/$id")));
 
     if (response.statusCode != 200) {
-      throw Exception("Failed to delete ingredient (server returned ${response.statusCode})");
+      throw Exception(
+        "Failed to delete ingredient (server returned ${response.statusCode})",
+      );
     }
 
-    // Mirror the delete to Supabase too -- otherwise the cloud row survives
-    // and the next sync recreates it locally as a duplicate.
-    await SupabaseService.deleteIngredient(id);
+    // Recorded before the mirror-delete attempt so that, if it fails (e.g.
+    // offline right at this instant), the next sync can finish deleting the
+    // stale cloud row instead of resurrecting this ingredient locally.
+    // Cleared immediately once the mirror confirms the cloud row is gone.
+    await DeleteTombstones.add(id);
+    final mirrored = await SupabaseService.deleteIngredient(id);
+    if (mirrored) {
+      await DeleteTombstones.remove(id);
+    }
   }
 
-  static Future<List<String>>
-    getRecipes() async {
+  static Future<List<String>> getRecipes() async {
+    final response = await _send(() => http.get(_uri("/recipes")));
 
-      final response = await _send(() => http.get(_uri("/recipes")));
+    if (response.statusCode == 200) {
+      List data = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
-        List data =
-            jsonDecode(response.body);
-
-        return data
-            .map<String>(
-                (item) => item.toString())
-            .toList();
-      }
-
-      throw Exception("Failed to load recipes (server returned ${response.statusCode})");
+      return data.map<String>((item) => item.toString()).toList();
     }
 
-    static Future<List<Map<String, dynamic>>>
-        getRecipesDetailed() async {
+    throw Exception(
+      "Failed to load recipes (server returned ${response.statusCode})",
+    );
+  }
 
-      final response = await _send(() => http.get(_uri("/recipes")));
+  static Future<List<Map<String, dynamic>>> getRecipesDetailed() async {
+    final response = await _send(() => http.get(_uri("/recipes")));
 
-      if (response.statusCode == 200) {
-        List data = jsonDecode(response.body);
-        return data
-            .map<Map<String, dynamic>>(
-                (item) => Map<String, dynamic>.from(item))
-            .toList();
-      }
-
-      throw Exception("Failed to load recipes (server returned ${response.statusCode})");
+    if (response.statusCode == 200) {
+      List data = jsonDecode(response.body);
+      return data
+          .map<Map<String, dynamic>>((item) => Map<String, dynamic>.from(item))
+          .toList();
     }
 
-    static Future<String?> getAiRecommendation() async {
-      final response = await _send(() => http.get(_uri("/ai-recommendation")));
+    throw Exception(
+      "Failed to load recipes (server returned ${response.statusCode})",
+    );
+  }
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return data["recipe_name"] as String?;
-      }
+  static Future<String?> getAiRecommendation() async {
+    final response = await _send(() => http.get(_uri("/ai-recommendation")));
 
-      throw Exception("Failed to load AI recommendation (server returned ${response.statusCode})");
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data["recipe_name"] as String?;
     }
 
-    static Future<List<Map<String, dynamic>>>
-        getExpiryStatus() async {
+    throw Exception(
+      "Failed to load AI recommendation (server returned ${response.statusCode})",
+    );
+  }
 
-      final response = await _send(() => http.get(_uri("/expiry-status")));
+  static Future<List<Map<String, dynamic>>> getExpiryStatus() async {
+    final response = await _send(() => http.get(_uri("/expiry-status")));
 
-      if (response.statusCode == 200) {
-        List data = jsonDecode(response.body);
-        return data
-            .map<Map<String, dynamic>>(
-                (item) => Map<String, dynamic>.from(item))
-            .toList();
-      }
-
-      throw Exception("Failed to load expiry status (server returned ${response.statusCode})");
+    if (response.statusCode == 200) {
+      List data = jsonDecode(response.body);
+      return data
+          .map<Map<String, dynamic>>((item) => Map<String, dynamic>.from(item))
+          .toList();
     }
+
+    throw Exception(
+      "Failed to load expiry status (server returned ${response.statusCode})",
+    );
+  }
 }

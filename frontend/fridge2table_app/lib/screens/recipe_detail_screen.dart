@@ -296,6 +296,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (recipe.expiredIngredients.isNotEmpty) ...[
+                          _expiredIngredientsCard(),
+                          const SizedBox(height: 16),
+                        ] else if (recipe.expiringIngredients.isNotEmpty) ...[
+                          _expiringIngredientsCard(),
+                          const SizedBox(height: 16),
+                        ],
                         if (_matchedAllergens.isNotEmpty) ...[
                           _allergyWarningCard(_matchedAllergens),
                           const SizedBox(height: 16),
@@ -526,6 +533,74 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           style: const TextStyle(color: AppColors.textGray, fontSize: 12),
         ),
       ],
+    );
+  }
+
+  /// Passive freshness warning, separate from the Cook Now blocking dialog
+  /// (allergy/diet conflicts) — this never blocks cooking, it just surfaces
+  /// what recipe matching already knows: some of this recipe's matched
+  /// ingredients are expired/expiring in the pantry.
+  Widget _expiredIngredientsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDF2F0),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFC0392B).withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("⚠️", style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              "This recipe uses expired ingredients — check freshness before cooking",
+              style: TextStyle(
+                color: AppColors.textDark,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _expiringIngredientsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF9E7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFD68910).withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("⏰", style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              "Use this recipe to rescue expiring ingredients!",
+              style: TextStyle(
+                color: AppColors.textDark,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

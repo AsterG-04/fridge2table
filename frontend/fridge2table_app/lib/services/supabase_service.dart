@@ -4,6 +4,7 @@ import '../config/supabase_config.dart';
 import '../models/ingredient.dart';
 import '../models/sync_result.dart';
 import 'api_service.dart';
+import 'delete_tombstones.dart';
 import 'secure_storage_service.dart';
 
 /// Cloud backup/restore for the local pantry, backed by a single Supabase
@@ -58,14 +59,17 @@ class SupabaseService {
   }
 
   /// Deletes a single ingredient's cloud row, mirroring a local delete.
-  /// Without this, the cloud row survives every local delete — the next
-  /// sync then treats it as "cloud-only" and recreates it locally, which is
-  /// exactly how a deleted ingredient came back as a duplicate after
-  /// cooking deducted it to zero and deleted it locally.
-  static Future<void> deleteIngredient(int id) async {
-    if (!SupabaseConfig.isConfigured) return;
+  /// Returns whether the cloud row is confirmed gone (or never existed to
+  /// begin with) -- callers use this to decide whether a delete tombstone
+  /// (see DeleteTombstones) still needs to be kept around. Without a
+  /// tombstone, a failed mirror-delete here means the surviving cloud row
+  /// gets treated as "cloud-only" on the next sync and recreated locally,
+  /// which is exactly how a deleted ingredient could come back as a
+  /// duplicate after cooking deducted it to zero and deleted it locally.
+  static Future<bool> deleteIngredient(int id) async {
+    if (!SupabaseConfig.isConfigured) return true;
     final userId = _userId;
-    if (userId == null) return;
+    if (userId == null) return true;
 
     try {
       await _client
@@ -73,12 +77,14 @@ class SupabaseService {
           .delete()
           .eq("id", id)
           .eq("user_id", userId);
+      return true;
     } catch (_) {
-      // Best-effort: if this fails (offline right at delete time, etc.) the
-      // row can still reappear on the next sync -- there's no local
-      // tombstone/retry queue for this yet. A subsequent manual delete
-      // retry (or another Sync Now after connectivity returns) will still
-      // work correctly since this call is naturally idempotent.
+      // Offline right at delete time, etc. -- the caller's tombstone stays
+      // in place so a later resync (resolveConflicts/syncFromCloud) can
+      // finish this delete instead of resurrecting the row. A subsequent
+      // manual delete retry would also still work fine since this call is
+      // naturally idempotent.
+      return false;
     }
   }
 
@@ -156,12 +162,21 @@ class SupabaseService {
         for (final i in local)
           if (i.id != null) i.id!: i,
       };
+      final tombstones = await DeleteTombstones.load();
 
       int applied = 0;
       for (final cloudItem in cloud) {
         final localItem = cloudItem.id == null ? null : localById[cloudItem.id];
 
         if (localItem == null) {
+          final id = cloudItem.id;
+          if (id != null && tombstones.contains(id)) {
+            // Deliberately deleted locally -- the mirror-delete never
+            // landed, so finish it now instead of resurrecting the item.
+            await deleteIngredient(id);
+            await DeleteTombstones.remove(id);
+            continue;
+          }
           await ApiService.addIngredient(cloudItem);
           applied++;
           continue;
@@ -215,12 +230,20 @@ class SupabaseService {
 
       final allIds = {...localById.keys, ...cloudById.keys};
       int changes = 0;
+      final tombstones = await DeleteTombstones.load();
 
       for (final id in allIds) {
         final localItem = localById[id];
         final cloudItem = cloudById[id];
 
         if (localItem == null && cloudItem != null) {
+          if (tombstones.contains(id)) {
+            // Deliberately deleted locally -- the mirror-delete never
+            // landed, so finish it now instead of resurrecting the item.
+            await deleteIngredient(id);
+            await DeleteTombstones.remove(id);
+            continue;
+          }
           await ApiService.addIngredient(cloudItem);
           changes++;
         } else if (cloudItem == null && localItem != null) {

@@ -48,6 +48,14 @@ class RecipeDetail {
   final NutritionInfo nutrition;
   final List<CookingStep> steps;
 
+  /// Names of this recipe's matched ingredients that are currently expired
+  /// / expiring today-or-soon in the user's pantry (from the backend's
+  /// /recipes response) — recipe matching itself already considers every
+  /// pantry item regardless of freshness, these are purely for the warning
+  /// banner/icon so a stale ingredient doesn't get used unnoticed.
+  final List<String> expiredIngredients;
+  final List<String> expiringIngredients;
+
   const RecipeDetail({
     this.id,
     required this.name,
@@ -62,14 +70,19 @@ class RecipeDetail {
     required this.ingredients,
     required this.nutrition,
     required this.steps,
+    this.expiredIngredients = const [],
+    this.expiringIngredients = const [],
   });
 
   static String _titleCase(String s) {
     if (s.isEmpty) return s;
-    return s.split(RegExp(r"\s+")).map((w) {
-      if (w.isEmpty) return w;
-      return w[0].toUpperCase() + w.substring(1);
-    }).join(" ");
+    return s
+        .split(RegExp(r"\s+"))
+        .map((w) {
+          if (w.isEmpty) return w;
+          return w[0].toUpperCase() + w.substring(1);
+        })
+        .join(" ");
   }
 
   static String _initialsFor(String name) {
@@ -105,10 +118,14 @@ class RecipeDetail {
     return RecipeDetail(
       id: json["id"] is int ? json["id"] as int : null,
       name: json["name"]?.toString() ?? "",
-      tags: dietTags.isNotEmpty ? dietTags.join(" · ") : (cuisine.isNotEmpty ? cuisine : "Recipe"),
+      tags: dietTags.isNotEmpty
+          ? dietTags.join(" · ")
+          : (cuisine.isNotEmpty ? cuisine : "Recipe"),
       time: json["prep_time"]?.toString() ?? "20 min",
       cookTime: json["cook_time"]?.toString() ?? "—",
-      calories: nutritionJson["calories"] is int ? nutritionJson["calories"] as int : 0,
+      calories: nutritionJson["calories"] is int
+          ? nutritionJson["calories"] as int
+          : 0,
       difficulty: json["difficulty"]?.toString() ?? "Easy",
       matchPercent: json["match_score"] is int ? json["match_score"] as int : 0,
       sustainabilityTip: json["sustainability_tip"]?.toString() ?? "",
@@ -123,7 +140,9 @@ class RecipeDetail {
           ),
       ],
       nutrition: NutritionInfo(
-        calories: nutritionJson["calories"] is int ? nutritionJson["calories"] as int : 0,
+        calories: nutritionJson["calories"] is int
+            ? nutritionJson["calories"] as int
+            : 0,
         protein: nutritionJson["protein"]?.toString() ?? "—",
         carbs: nutritionJson["carbs"]?.toString() ?? "—",
         fat: nutritionJson["fat"]?.toString() ?? "—",
@@ -132,6 +151,12 @@ class RecipeDetail {
         for (int i = 0; i < stepsList.length; i++)
           CookingStep(title: "Step ${i + 1}", instructions: stepsList[i]),
       ],
+      expiredIngredients: (json["expired_ingredients"] as List? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      expiringIngredients: (json["expiring_ingredients"] as List? ?? [])
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 
@@ -150,11 +175,17 @@ class RecipeDetail {
       sustainabilityTip: "",
       cuisine: "",
       ingredients: const [],
-      nutrition: const NutritionInfo(calories: 0, protein: "—", carbs: "—", fat: "—"),
+      nutrition: const NutritionInfo(
+        calories: 0,
+        protein: "—",
+        carbs: "—",
+        fat: "—",
+      ),
       steps: const [
         CookingStep(
           title: "Step 1",
-          instructions: "Full step-by-step data isn't available for this entry — cook using your usual method.",
+          instructions:
+              "Full step-by-step data isn't available for this entry — cook using your usual method.",
         ),
       ],
     );
