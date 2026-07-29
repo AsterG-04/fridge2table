@@ -29,7 +29,7 @@ backend/fridge2table.db
 .claude/settings.local.json
 .claude/*.lock
 
-# Markdown files 
-DISSERTATION.md
-z_All_Notes.md
-README.md
+# Local-only reference docs -- dissertation source notes and FYP paperwork,
+# kept on disk for reference but not meant to be public on GitHub.
+DISSERTATION_NOTES.md
+z_ALL_DOC.md
