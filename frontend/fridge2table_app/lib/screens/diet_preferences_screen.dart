@@ -59,6 +59,45 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _loadExisting();
+  }
+
+  /// Pre-fills whatever was saved last time -- this screen is reused both
+  /// for first-time onboarding (always starts blank, nothing saved yet)
+  /// and for editing later from Profile, which previously always opened
+  /// blank too regardless of what was already saved. That made saved
+  /// preferences look like they'd been wiped on every re-visit (e.g.
+  /// after logging back in), when they were actually sitting in
+  /// SharedPreferences the whole time -- this screen just never read
+  /// them back.
+  Future<void> _loadExisting() async {
+    final diets = await AuthService.getDietPreferences();
+    final allergies = await AuthService.getAllergies();
+    if (!mounted) return;
+
+    setState(() {
+      for (final diet in diets) {
+        if (_dietOptions.any((o) => o["name"] == diet)) {
+          _selectedDiets.add(diet);
+        } else {
+          _otherDietSelected = true;
+          _otherDietController.text = diet;
+        }
+      }
+      for (final allergy in allergies) {
+        if (_allergyOptions.any((o) => o["name"] == allergy)) {
+          _selectedAllergies.add(allergy);
+        } else {
+          _otherAllergySelected = true;
+          _otherAllergyController.text = allergy;
+        }
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _otherDietController.dispose();
     _otherAllergyController.dispose();
@@ -211,13 +250,18 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFFFDF2F0),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFC0392B).withValues(alpha: 0.14)),
+            border: Border.all(
+              color: const Color(0xFFC0392B).withValues(alpha: 0.14),
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  size: 16, color: Color(0xFFC0392B)),
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 16,
+                color: Color(0xFFC0392B),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: RichText(
@@ -242,7 +286,9 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
         const SizedBox(height: 16),
         for (int i = 0; i < _allergyOptions.length; i++)
           Padding(
-            padding: EdgeInsets.only(bottom: i == _allergyOptions.length - 1 ? 0 : 8),
+            padding: EdgeInsets.only(
+              bottom: i == _allergyOptions.length - 1 ? 0 : 8,
+            ),
             child: _allergyCard(_allergyOptions[i]),
           ),
       ],
@@ -281,7 +327,11 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                   color: Colors.white.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.chevron_left,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ],
@@ -332,7 +382,9 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
   Widget _dietCard(Map<String, String> option) {
     final name = option["name"]!;
     final isOther = name == "Other";
-    final isSelected = isOther ? _otherDietSelected : _selectedDiets.contains(name);
+    final isSelected = isOther
+        ? _otherDietSelected
+        : _selectedDiets.contains(name);
 
     return GestureDetector(
       onTap: () => isOther ? _toggleOtherDiet() : _toggleDiet(name),
@@ -391,11 +443,19 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                 decoration: InputDecoration(
                   isDense: true,
                   hintText: "e.g. Low FODMAP",
-                  hintStyle: const TextStyle(fontSize: 12, color: AppColors.textGray),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  hintStyle: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textGray,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: AppColors.darkGreen.withValues(alpha: 0.15)),
+                    borderSide: BorderSide(
+                      color: AppColors.darkGreen.withValues(alpha: 0.15),
+                    ),
                   ),
                 ),
               ),
@@ -413,7 +473,9 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
     final severityColor = severity.isEmpty
         ? AppColors.chipGreenText
         : _severityColors[severity]!;
-    final isSelected = isOther ? _otherAllergySelected : _selectedAllergies.contains(name);
+    final isSelected = isOther
+        ? _otherAllergySelected
+        : _selectedAllergies.contains(name);
 
     return GestureDetector(
       onTap: () => isOther ? _toggleOtherAllergy() : _toggleAllergy(name),
@@ -452,7 +514,10 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                       if (severity.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: severityColor.withValues(alpha: 0.09),
                             borderRadius: BorderRadius.circular(999),
@@ -474,7 +539,9 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.darkGreen : Colors.transparent,
+                    color: isSelected
+                        ? AppColors.darkGreen
+                        : Colors.transparent,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isSelected
@@ -497,11 +564,19 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                 decoration: InputDecoration(
                   isDense: true,
                   hintText: "e.g. Kiwi",
-                  hintStyle: const TextStyle(fontSize: 12, color: AppColors.textGray),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  hintStyle: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textGray,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: AppColors.darkGreen.withValues(alpha: 0.15)),
+                    borderSide: BorderSide(
+                      color: AppColors.darkGreen.withValues(alpha: 0.15),
+                    ),
                   ),
                 ),
               ),
@@ -554,7 +629,11 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                           ),
                         ),
                         SizedBox(width: 8),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 16),
+                        Icon(
+                          Icons.arrow_forward,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ],
                     ),
             ),

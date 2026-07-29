@@ -32,6 +32,7 @@ class StatisticsScreen extends StatefulWidget {
 class _StatisticsScreenState extends State<StatisticsScreen> {
   int? _totalItems;
   int? _expiredCount;
+  int? _expiringSoonCount;
   int? _recipesMatched;
   int? _recipesCooked;
   double _foodSavedKg = 0;
@@ -48,8 +49,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   static const double _avgKgPerCook = 0.15;
 
   static const List<String> _monthAbbrev = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
   ];
 
   static const Map<String, Color> _categoryColors = {
@@ -74,7 +85,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Future<void> _loadRealStats() async {
     await Future.wait([
       _loadInventoryCount(),
-      _loadExpiredCount(),
+      _loadExpiryCounts(),
       _loadRecipesMatchedCount(),
     ]);
   }
@@ -88,11 +99,26 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
   }
 
-  Future<void> _loadExpiredCount() async {
+  // Expired and expiring-soon are split into two distinct stats now
+  // (rather than one combined "Items Expired" figure), computed from the
+  // same /expiry-status call: "expired" is strictly past-date, while
+  // "expiring soon" covers "today" and "soon" (within 3 days) so a user
+  // can tell "already gone off" apart from "use this shortly" at a glance.
+  Future<void> _loadExpiryCounts() async {
     try {
       final expiryStatus = await ApiService.getExpiryStatus();
-      final count = expiryStatus.where((e) => e["status"] == "expired").length;
-      if (mounted) setState(() => _expiredCount = count);
+      final expired = expiryStatus
+          .where((e) => e["status"] == "expired")
+          .length;
+      final expiringSoon = expiryStatus
+          .where((e) => e["status"] == "today" || e["status"] == "soon")
+          .length;
+      if (mounted) {
+        setState(() {
+          _expiredCount = expired;
+          _expiringSoonCount = expiringSoon;
+        });
+      }
     } catch (_) {
       // Falls back to "—" below.
     }
@@ -113,7 +139,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     if (!mounted) return;
 
     final totalCooked = CookedHistoryStore.totalMealsCooked;
-    debugPrint("[StatisticsScreen] _loadHistoryStats(): totalMealsCooked=$totalCooked");
+    debugPrint(
+      "[StatisticsScreen] _loadHistoryStats(): totalMealsCooked=$totalCooked",
+    );
 
     setState(() {
       _recipesCooked = totalCooked;
@@ -135,7 +163,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
     return [
       for (final entry in counts.entries)
-        _CategoryShare(entry.key, entry.value / total * 100, _categoryColors[entry.key] ?? AppColors.textGray),
+        _CategoryShare(
+          entry.key,
+          entry.value / total * 100,
+          _categoryColors[entry.key] ?? AppColors.textGray,
+        ),
     ]..sort((a, b) => b.percent.compareTo(a.percent));
   }
 
@@ -147,7 +179,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     final months = <String, _MonthTrend>{};
     for (int i = 5; i >= 0; i--) {
       final d = DateTime(now.year, now.month - i, 1);
-      months["${d.year}-${d.month}"] = _MonthTrend(_monthAbbrev[d.month - 1], 0, 0);
+      months["${d.year}-${d.month}"] = _MonthTrend(
+        _monthAbbrev[d.month - 1],
+        0,
+        0,
+      );
     }
 
     for (final entry in CookedHistoryStore.entries) {
@@ -161,7 +197,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       if (existing == null) continue;
 
       final savedKg = entry.timesCooked * _avgKgPerCook;
-      months[key] = _MonthTrend(existing.label, existing.saved + savedKg, existing.wasted + savedKg * 0.15);
+      months[key] = _MonthTrend(
+        existing.label,
+        existing.saved + savedKg,
+        existing.wasted + savedKg * 0.15,
+      );
     }
 
     return months.values.toList();
@@ -193,14 +233,22 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 children: [
                   const Text(
                     "Your Pantry Right Now",
-                    style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: AppColors.textDark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _buildPantrySnapshot(),
                   const SizedBox(height: 20),
                   const Text(
                     "Cooking Impact",
-                    style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: AppColors.textDark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _buildStatGrid(),
@@ -239,15 +287,27 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             child: Container(
               width: 36,
               height: 36,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.chevron_left,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
           const Expanded(
             child: Text(
               "Statistics",
               textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: "Outfit", fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white),
+              style: TextStyle(
+                fontFamily: "Outfit",
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                color: Colors.white,
+              ),
             ),
           ),
           GestureDetector(
@@ -255,8 +315,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             child: Container(
               width: 36,
               height: 36,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
-              child: const Icon(Icons.help_outline, color: Colors.white, size: 18),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.help_outline,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -265,26 +332,74 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Widget _buildPantrySnapshot() {
-    return Row(
+    return Column(
       children: [
-        Expanded(child: _statCard(Icons.kitchen_outlined, _totalItems?.toString() ?? "—", "Items in Pantry")),
-        const SizedBox(width: 8),
-        Expanded(child: _statCard(Icons.warning_amber_rounded, _expiredCount?.toString() ?? "—", "Items Expired")),
-        const SizedBox(width: 8),
-        Expanded(child: _statCard(Icons.restaurant_menu, _recipesMatched?.toString() ?? "—", "Recipes Matched")),
+        Row(
+          children: [
+            Expanded(
+              child: _statCard(
+                Icons.kitchen_outlined,
+                _totalItems?.toString() ?? "—",
+                "Items in Pantry",
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _statCard(
+                Icons.schedule,
+                _expiringSoonCount?.toString() ?? "—",
+                "Expiring Soon",
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _statCard(
+                Icons.warning_amber_rounded,
+                _expiredCount?.toString() ?? "—",
+                "Expired",
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _statCard(
+                Icons.restaurant_menu,
+                _recipesMatched?.toString() ?? "—",
+                "Recipes Matched",
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
 
   Widget _buildStatGrid() {
-    final foodSavedLabel = _historyLoaded ? "${_foodSavedKg.toStringAsFixed(1)} kg" : "—";
+    final foodSavedLabel = _historyLoaded
+        ? "${_foodSavedKg.toStringAsFixed(1)} kg"
+        : "—";
     final recipesCookedLabel = _recipesCooked?.toString() ?? "—";
 
     return Row(
       children: [
-        Expanded(child: _statCard(Icons.savings_outlined, foodSavedLabel, "Food Saved")),
+        Expanded(
+          child: _statCard(
+            Icons.savings_outlined,
+            foodSavedLabel,
+            "Food Saved",
+          ),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _statCard(Icons.restaurant, recipesCookedLabel, "Recipes Cooked")),
+        Expanded(
+          child: _statCard(
+            Icons.restaurant,
+            recipesCookedLabel,
+            "Recipes Cooked",
+          ),
+        ),
       ],
     );
   }
@@ -295,15 +410,29 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(icon, size: 18, color: AppColors.darkGreen),
               const SizedBox(height: 12),
-              Text(value, style: const TextStyle(fontFamily: "Outfit", fontWeight: FontWeight.w800, fontSize: 22, color: AppColors.textDark)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontFamily: "Outfit",
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                  color: AppColors.textDark,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(label, style: const TextStyle(color: AppColors.textGray, fontSize: 12)),
+              Text(
+                label,
+                style: const TextStyle(color: AppColors.textGray, fontSize: 12),
+              ),
             ],
           ),
         ),
@@ -315,15 +444,26 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: AppColors.lightGreen, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: AppColors.lightGreen,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: const Row(
         children: [
-          Icon(Icons.emoji_events_outlined, size: 18, color: AppColors.darkGreen),
+          Icon(
+            Icons.emoji_events_outlined,
+            size: 18,
+            color: AppColors.darkGreen,
+          ),
           SizedBox(width: 10),
           Expanded(
             child: Text(
               "Start cooking to track your impact!",
-              style: TextStyle(color: AppColors.darkGreen, fontSize: 13, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: AppColors.darkGreen,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -338,19 +478,35 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
     final maxValue = _trends
         .map((t) => t.saved + t.wasted)
-        .fold(0.01, math.max); // avoid divide-by-zero when nothing's been cooked yet
+        .fold(
+          0.01,
+          math.max,
+        ); // avoid divide-by-zero when nothing's been cooked yet
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Monthly Trends", style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold)),
+          const Text(
+            "Monthly Trends",
+            style: TextStyle(
+              color: AppColors.textDark,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           Text(
             "Estimated from your cooking history",
-            style: TextStyle(color: AppColors.textGray.withValues(alpha: 0.8), fontSize: 11),
+            style: TextStyle(
+              color: AppColors.textGray.withValues(alpha: 0.8),
+              fontSize: 11,
+            ),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -383,7 +539,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
     return GestureDetector(
       onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("${t.label}: ${t.saved.toStringAsFixed(2)} kg saved · ${t.wasted.toStringAsFixed(2)} kg wasted")),
+        SnackBar(
+          content: Text(
+            "${t.label}: ${t.saved.toStringAsFixed(2)} kg saved · ${t.wasted.toStringAsFixed(2)} kg wasted",
+          ),
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -397,7 +557,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 height: savedHeight.clamp(4, chartHeight),
                 decoration: BoxDecoration(
                   color: _savedColor,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(4),
+                  ),
                 ),
               ),
               const SizedBox(width: 2),
@@ -406,13 +568,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 height: wastedHeight.clamp(4, chartHeight),
                 decoration: BoxDecoration(
                   color: _wastedColor,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(4),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(t.label, style: const TextStyle(color: AppColors.textGray, fontSize: 10)),
+          Text(
+            t.label,
+            style: const TextStyle(color: AppColors.textGray, fontSize: 10),
+          ),
         ],
       ),
     );
@@ -422,9 +589,16 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 6),
-        Text(label, style: const TextStyle(color: AppColors.textGray, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textGray, fontSize: 12),
+        ),
       ],
     );
   }
@@ -433,11 +607,21 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Most Used Categories", style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold)),
+          const Text(
+            "Most Used Categories",
+            style: TextStyle(
+              color: AppColors.textDark,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 16),
           if (!_historyLoaded)
             const SizedBox.shrink()
@@ -475,10 +659,26 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget _categoryRow(_CategoryShare c) {
     return Row(
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: c.color, shape: BoxShape.circle)),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: c.color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: Text(c.label, style: const TextStyle(color: AppColors.textDark, fontSize: 13, fontWeight: FontWeight.w600))),
-        Text("${c.percent.toInt()}%", style: const TextStyle(color: AppColors.textGray, fontSize: 12)),
+        Expanded(
+          child: Text(
+            c.label,
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Text(
+          "${c.percent.toInt()}%",
+          style: const TextStyle(color: AppColors.textGray, fontSize: 12),
+        ),
       ],
     );
   }

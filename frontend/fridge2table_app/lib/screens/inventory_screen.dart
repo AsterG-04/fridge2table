@@ -79,27 +79,33 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
-  (Color, Color, String) _expiryTag(String? expiryDate) {
-    if (expiryDate == null || expiryDate.isEmpty) {
-      return (const Color(0xFFF3F4F6), const Color(0xFF6B7280), "No date");
-    }
+  /// Urgency badge shown directly on the Pantry card, matching the same
+  /// day-based classification the backend uses for /expiry-status --
+  /// null for "fresh" or "unknown" (no date set / unparseable), since
+  /// those aren't urgent and don't need a badge at all. Distinct colors
+  /// for each of the three urgent states (not just red-vs-not) so a
+  /// glance at the list tells expired apart from merely expiring soon.
+  (Color, Color, String)? _expiryBadge(String? expiryDate) {
+    if (expiryDate == null || expiryDate.isEmpty) return null;
 
     final expiry = DateTime.tryParse(expiryDate);
-    if (expiry == null) {
-      return (const Color(0xFFF3F4F6), const Color(0xFF6B7280), "No date");
-    }
+    if (expiry == null) return null;
 
-    final daysLeft = expiry.difference(DateTime.now()).inDays;
-    final label = "${expiry.month}/${expiry.day}";
+    final today = DateTime.now();
+    final daysLeft = DateTime(
+      expiry.year,
+      expiry.month,
+      expiry.day,
+    ).difference(DateTime(today.year, today.month, today.day)).inDays;
 
     if (daysLeft < 0) {
       return (const Color(0xFFFDF2F0), const Color(0xFFC0392B), "Expired");
-    } else if (daysLeft <= 1) {
-      return (const Color(0xFFFDF2F0), const Color(0xFFC0392B), label);
+    } else if (daysLeft == 0) {
+      return (const Color(0xFFFDF0E6), const Color(0xFFE67E22), "Today");
     } else if (daysLeft <= 3) {
-      return (const Color(0xFFFEF9E7), const Color(0xFFD68910), label);
+      return (const Color(0xFFFEF9E7), const Color(0xFFD68910), "Soon");
     }
-    return (const Color(0xFFEAFAF1), const Color(0xFF1D6A3A), label);
+    return null;
   }
 
   String _initials(String name) {
@@ -419,7 +425,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Widget _buildItemCard(Ingredient item) {
     final (chipBg, chipText) = _catColors(item.category);
-    final (tagBg, tagText, tagLabel) = _expiryTag(item.expiryDate);
+    final badge = _expiryBadge(item.expiryDate);
     final quantityLabel = item.quantity == item.quantity.roundToDouble()
         ? item.quantity.toInt().toString()
         : item.quantity.toString();
@@ -475,24 +481,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: tagBg,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  tagLabel,
-                  style: TextStyle(
-                    color: tagText,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+              if (badge != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badge.$1,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    badge.$3,
+                    style: TextStyle(
+                      color: badge.$2,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
+              ],
               const SizedBox(height: 4),
               Row(
                 children: [

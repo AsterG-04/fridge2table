@@ -184,8 +184,21 @@ def remove_ingredient(
 # shared generic ingredient like garlic or onion -- requiring at least 2
 # actual matches alongside the percentage bar is what actually filters out
 # "technically matches, not actually relevant" recommendations.
+#
+# That 2-match floor backfires for a genuinely small pantry, though: with
+# only 1-2 items total, no recipe can ever share 2 ingredients with it
+# unless the pantry happens to contain two things from the same recipe --
+# a lone apple or cauliflower would never surface anything at all, even
+# though "Fruit Salad" (1 match, 20% score) or "Aloo Gobi" (1 match, 20%
+# score) are perfectly relevant. Below SMALL_PANTRY_THRESHOLD items, drop
+# the count requirement to 1 and let the percentage score alone decide --
+# the score-inflation risk this guards against only really applies once
+# there's enough pantry variety for a single generic ingredient to fish
+# for unrelated matches.
 MIN_MATCH_SCORE = 20
 MIN_MATCH_COUNT = 2
+SMALL_PANTRY_THRESHOLD = 5
+SMALL_PANTRY_MIN_MATCH_COUNT = 1
 
 RECIPES_RETURNED = 25
 
@@ -198,6 +211,12 @@ def _matched_recipes(ingredient_names: list[str]):
 
     if not user_ingredients:
         return []
+
+    min_match_count = (
+        SMALL_PANTRY_MIN_MATCH_COUNT
+        if len(user_ingredients) < SMALL_PANTRY_THRESHOLD
+        else MIN_MATCH_COUNT
+    )
 
     candidate_ids = set()
     for ingredient in user_ingredients:
@@ -218,7 +237,7 @@ def _matched_recipes(ingredient_names: list[str]):
             len(matches) / len(recipe_ingredients) * 100
         )
 
-        if score < MIN_MATCH_SCORE or len(matches) < MIN_MATCH_COUNT:
+        if score < MIN_MATCH_SCORE or len(matches) < min_match_count:
             continue
 
         # Full recipe (steps, nutrition, cook_time, etc.) plus match info,
@@ -237,14 +256,46 @@ def _matched_recipes(ingredient_names: list[str]):
     return results
 
 
+# Worst-case status wins when the same ingredient name appears more than
+# once in the pantry with different expiry dates (e.g. two cartons of
+# milk, one expired and one fresh) -- a recipe should still get flagged
+# if *any* of the user's matching stock is expired, not just the newest.
+_STATUS_SEVERITY = {"expired": 3, "today": 2, "soon": 2, "fresh": 1, "unknown": 0}
+
+
+def _expiry_map(ingredients: list, today: date) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for item in ingredients:
+        status = _expiry_status_for(item.expiry_date, today)
+        key = _normalize(item.name)
+        if key not in result or _STATUS_SEVERITY[status] > _STATUS_SEVERITY[result[key]]:
+            result[key] = status
+    return result
+
+
 @router.get("/recipes")
 def get_recipes(
     user_id: str,
     db: Session = Depends(get_db)
 ):
     ingredients = get_ingredients(db, user_id)
-    results = _matched_recipes([item.name for item in ingredients])
-    return results[:RECIPES_RETURNED]
+    results = _matched_recipes([item.name for item in ingredients])[:RECIPES_RETURNED]
+
+    # Recipe matching already considers every pantry item regardless of
+    # expiry -- this only adds freshness metadata on top so the frontend
+    # can warn about (rather than silently hide) recipes using ingredients
+    # that are expired or expiring soon.
+    status_by_name = _expiry_map(ingredients, date.today())
+    for recipe in results:
+        matched = recipe["matched_ingredients"]
+        recipe["expired_ingredients"] = sorted(
+            name for name in matched if status_by_name.get(name) == "expired"
+        )
+        recipe["expiring_ingredients"] = sorted(
+            name for name in matched if status_by_name.get(name) in ("today", "soon")
+        )
+
+    return results
 
 
 @router.get("/ai-recommendation")
