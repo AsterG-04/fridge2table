@@ -28,3 +28,8 @@ backend/fridge2table.db
 # Claude Code local/runtime state -- machine-specific, not shared config.
 .claude/settings.local.json
 .claude/*.lock
+
+# Markdown files 
+DISSERTATION.md
+z_All_Notes.md
+README.md
