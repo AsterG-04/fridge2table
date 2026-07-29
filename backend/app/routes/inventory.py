@@ -6,6 +6,7 @@ import os
 
 import httpx
 
+from ..auth import get_current_user_id
 from ..config import OPENROUTER_API_KEY, OPENROUTER_MODEL, OPENROUTER_URL
 from ..database import SessionLocal
 from ..schemas import IngredientCreate, IngredientResponse
@@ -89,7 +90,7 @@ with open(RECIPES_PATH, "r", encoding="utf-8") as f:
 @router.post("/ingredient", response_model=IngredientResponse)
 def add_ingredient(
     ingredient: IngredientCreate,
-    user_id: str,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     return create_ingredient(db, ingredient, user_id)
@@ -97,7 +98,7 @@ def add_ingredient(
 
 @router.get("/inventory", response_model=list[IngredientResponse])
 def get_inventory(
-    user_id: str,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     return get_ingredients(db, user_id)
@@ -128,7 +129,7 @@ def _expiry_status_for(expiry_date: str | None, today: date) -> str:
 
 @router.get("/expiry-status")
 def get_expiry_status(
-    user_id: str,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     ingredients = get_ingredients(db, user_id)
@@ -158,7 +159,7 @@ def get_expiry_status(
 def edit_ingredient(
     ingredient_id: int,
     ingredient: IngredientCreate,
-    user_id: str,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     updated = update_ingredient(db, ingredient_id, ingredient, user_id)
@@ -170,7 +171,7 @@ def edit_ingredient(
 @router.delete("/ingredient/{ingredient_id}")
 def remove_ingredient(
     ingredient_id: int,
-    user_id: str,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     deleted = delete_ingredient(db, ingredient_id, user_id)
@@ -275,7 +276,7 @@ def _expiry_map(ingredients: list, today: date) -> dict[str, str]:
 
 @router.get("/recipes")
 def get_recipes(
-    user_id: str,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     ingredients = get_ingredients(db, user_id)
@@ -300,7 +301,7 @@ def get_recipes(
 
 @router.get("/ai-recommendation")
 def get_ai_recommendation(
-    user_id: str,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     ingredients = get_ingredients(db, user_id)

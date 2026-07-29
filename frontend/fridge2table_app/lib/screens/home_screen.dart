@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
 import '../models/ingredient.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import 'ai_camera_screen.dart';
 import 'add_ingredient_screen.dart';
 import 'expiry_monitor_screen.dart';
@@ -47,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadStats();
     _loadUserName();
+    unawaited(NotificationService.checkAndNotify());
   }
 
   Future<void> _loadUserName() async {
@@ -110,12 +114,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadExpiryStats() async {
     try {
       final expiryStatus = await ApiService.getExpiryStatus();
-      final urgent = expiryStatus
-          .where((e) => e["status"] == "today" || e["status"] == "soon")
-          .toList()
-        // "today" is more urgent than "soon" — everything else that
-        // reaches here is already one of those two statuses.
-        ..sort((a, b) => a["status"] == b["status"] ? 0 : (a["status"] == "today" ? -1 : 1));
+      final urgent =
+          expiryStatus
+              .where((e) => e["status"] == "today" || e["status"] == "soon")
+              .toList()
+            // "today" is more urgent than "soon" — everything else that
+            // reaches here is already one of those two statuses.
+            ..sort(
+              (a, b) => a["status"] == b["status"]
+                  ? 0
+                  : (a["status"] == "today" ? -1 : 1),
+            );
       if (mounted) {
         setState(() {
           _expiringSoonCount = urgent.length;
@@ -163,7 +172,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_expiringSoonCount == null || _recipeMatchCount == null) return null;
     if (_expiringSoonItems.isEmpty) return null;
 
-    final urgentName = (_expiringSoonItems.first["name"] as String?)?.trim() ?? "";
+    final urgentName =
+        (_expiringSoonItems.first["name"] as String?)?.trim() ?? "";
     if (urgentName.isEmpty) return null;
 
     final normalized = urgentName.toLowerCase();
@@ -202,7 +212,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     "Recent Ingredients",
                     onSeeAll: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const InventoryScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const InventoryScreen(),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -269,7 +281,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen(),
+                      ),
                     ),
                     child: Stack(
                       clipBehavior: Clip.none,
@@ -281,8 +295,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Colors.white.withValues(alpha: 0.18),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.notifications_outlined,
-                              color: Colors.white, size: 18),
+                          child: const Icon(
+                            Icons.notifications_outlined,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                         Positioned(
                           top: 6,
@@ -327,8 +344,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.white.withValues(alpha: 0.4),
                       ),
                     ),
-                    child: const Icon(Icons.settings_outlined,
-                        color: Colors.white, size: 16),
+                    child: const Icon(
+                      Icons.settings_outlined,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ],
               ),
@@ -337,11 +357,23 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _statCard(_itemCount?.toString() ?? "—", "Pantry Items")),
+              Expanded(
+                child: _statCard(_itemCount?.toString() ?? "—", "Pantry Items"),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _statCard(_expiringSoonCount?.toString() ?? "—", "Expiring Soon")),
+              Expanded(
+                child: _statCard(
+                  _expiringSoonCount?.toString() ?? "—",
+                  "Expiring Soon",
+                ),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _statCard(_recipeMatchCount?.toString() ?? "—", "Recipe Matches")),
+              Expanded(
+                child: _statCard(
+                  _recipeMatchCount?.toString() ?? "—",
+                  "Recipe Matches",
+                ),
+              ),
             ],
           ),
         ],
@@ -401,7 +433,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.eco_outlined, color: AppColors.darkGreen, size: 20),
+            const Icon(
+              Icons.eco_outlined,
+              color: AppColors.darkGreen,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
@@ -428,7 +464,9 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF8E6),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE9A820).withValues(alpha: 0.25)),
+        border: Border.all(
+          color: const Color(0xFFE9A820).withValues(alpha: 0.25),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,7 +478,11 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Color(0xFFE9A820),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome, color: Colors.white, size: 17),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: Colors.white,
+              size: 17,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -472,7 +514,10 @@ class _HomeScreenState extends State<HomeScreen> {
           GestureDetector(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => RecipeScreen(initialIngredientFilter: urgentName)),
+              MaterialPageRoute(
+                builder: (_) =>
+                    RecipeScreen(initialIngredientFilter: urgentName),
+              ),
             ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -585,7 +630,9 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: const Color(0xFFFDF2F0),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFC0392B).withValues(alpha: 0.13)),
+          border: Border.all(
+            color: const Color(0xFFC0392B).withValues(alpha: 0.13),
+          ),
         ),
         child: Row(
           children: [
@@ -596,8 +643,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: const Color(0xFFC0392B).withValues(alpha: 0.13),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.warning_amber_rounded,
-                  color: Color(0xFFC0392B), size: 17),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFC0392B),
+                size: 17,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -623,7 +673,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textGray, size: 16),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.textGray,
+              size: 16,
+            ),
           ],
         ),
       ),
@@ -661,17 +715,29 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Center(
         child: failed
             ? Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("⚠️ Couldn't load — check your connection", style: TextStyle(color: AppColors.textGray)),
+                  const Text(
+                    "⚠️ Couldn't load — check your connection",
+                    style: TextStyle(color: AppColors.textGray),
+                  ),
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: _loadStats,
-                    child: const Text("Retry", style: TextStyle(color: AppColors.darkGreen, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "Retry",
+                      style: TextStyle(
+                        color: AppColors.darkGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               )
@@ -686,7 +752,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (items == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 12),
-        child: Center(child: CircularProgressIndicator(color: AppColors.darkGreen)),
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.darkGreen),
+        ),
       );
     }
 
@@ -797,11 +865,18 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: chipBg, borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(
+              color: chipBg,
+              borderRadius: BorderRadius.circular(20),
+            ),
             alignment: Alignment.center,
             child: Text(
               initials,
-              style: TextStyle(color: chipText, fontWeight: FontWeight.bold, fontSize: 12),
+              style: TextStyle(
+                color: chipText,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -809,20 +884,37 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name,
-                    style: const TextStyle(
-                        color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.w600)),
-                Text(subtitle,
-                    style: const TextStyle(color: AppColors.textGray, fontSize: 12)),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: AppColors.textGray,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: tagBg, borderRadius: BorderRadius.circular(999)),
+            decoration: BoxDecoration(
+              color: tagBg,
+              borderRadius: BorderRadius.circular(999),
+            ),
             child: Text(
               expiryLabel,
-              style: TextStyle(color: tagText, fontSize: 10, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: tagText,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -836,7 +928,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (recipes == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 12),
-        child: Center(child: CircularProgressIndicator(color: AppColors.darkGreen)),
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.darkGreen),
+        ),
       );
     }
 

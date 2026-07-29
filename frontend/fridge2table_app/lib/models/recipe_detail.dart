@@ -30,7 +30,18 @@ class CookingStep {
   final String title;
   final String instructions;
 
-  const CookingStep({required this.title, required this.instructions});
+  /// Optional countdown duration for this step, in minutes -- null for
+  /// most steps (e.g. "Whisk eggs"), set only for steps with a real wait
+  /// time worth timing (e.g. "Bake for 12 minutes"). Sourced from the
+  /// recipe's optional "step_timers" field, which is absent entirely for
+  /// recipes nobody has annotated with real timings yet.
+  final int? timerMinutes;
+
+  const CookingStep({
+    required this.title,
+    required this.instructions,
+    this.timerMinutes,
+  });
 }
 
 class RecipeDetail {
@@ -112,6 +123,7 @@ class RecipeDetail {
     final stepsList = (json["steps"] as List? ?? [])
         .map((e) => e.toString())
         .toList();
+    final stepTimersList = json["step_timers"] as List?;
     final nutritionJson = json["nutrition"] as Map<String, dynamic>? ?? {};
     final cuisine = json["cuisine"]?.toString() ?? "";
 
@@ -149,7 +161,13 @@ class RecipeDetail {
       ),
       steps: [
         for (int i = 0; i < stepsList.length; i++)
-          CookingStep(title: "Step ${i + 1}", instructions: stepsList[i]),
+          CookingStep(
+            title: "Step ${i + 1}",
+            instructions: stepsList[i],
+            timerMinutes: stepTimersList != null && i < stepTimersList.length
+                ? stepTimersList[i] as int?
+                : null,
+          ),
       ],
       expiredIngredients: (json["expired_ingredients"] as List? ?? [])
           .map((e) => e.toString())

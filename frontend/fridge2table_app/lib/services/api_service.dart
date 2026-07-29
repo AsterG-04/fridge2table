@@ -1,12 +1,16 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io' show SocketException;
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/api_config.dart';
 import '../config/supabase_config.dart';
+import '../main.dart';
 import '../models/ingredient.dart';
+import '../screens/signin_screen.dart';
+import 'auth_service.dart';
 import 'delete_tombstones.dart';
 import 'supabase_service.dart';
 
@@ -37,6 +41,19 @@ class ApiService {
     ).replace(queryParameters: {"user_id": _userId, ...?extraParams});
   }
 
+  /// Every request carries the current Supabase session's access token so
+  /// the backend can verify who's actually asking (see backend/app/auth.py)
+  /// instead of trusting the user_id query param above, which is now
+  /// vestigial from the backend's point of view but still sent for any
+  /// logging/debugging that inspects the URL.
+  static Map<String, String> _headers({bool json = false}) {
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    return {
+      if (token != null) "Authorization": "Bearer $token",
+      if (json) "Content-Type": "application/json",
+    };
+  }
+
   /// Runs an HTTP call with a consistent timeout and turns the handful of
   /// ways it can fail into distinct, actionable messages instead of one
   /// generic "something went wrong" — this is the difference between
@@ -46,8 +63,9 @@ class ApiService {
   static Future<http.Response> _send(
     Future<http.Response> Function() request,
   ) async {
+    http.Response response;
     try {
-      return await request().timeout(_timeout);
+      response = await request().timeout(_timeout);
     } on TimeoutException {
       throw Exception(
         ApiConfig.usingAdbReverse
@@ -74,11 +92,42 @@ class ApiService {
                   "the backend is running and the address is correct.",
       );
     }
+
+    if (response.statusCode == 401) {
+      await _handleUnauthorized();
+      throw Exception("Your session has expired. Please sign in again.");
+    }
+
+    return response;
+  }
+
+  /// A 401 means the backend no longer accepts this session's token (it
+  /// expired, or was revoked) -- there's no path forward except signing in
+  /// again, so this clears the stale local session and drops the user back
+  /// on SignInScreen from wherever they were, rather than leaving them
+  /// stuck on a screen that will just keep failing the same way.
+  static Future<void> _handleUnauthorized() async {
+    if (SupabaseConfig.isConfigured) {
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {
+        // Best-effort -- still clear the local session below even if the
+        // network sign-out call itself fails (e.g. already offline).
+      }
+    }
+    await AuthService.clearSession();
+
+    rootNavigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SignInScreen()),
+      (route) => false,
+    );
   }
 
   // GET inventory
   static Future<List<Ingredient>> getInventory() async {
-    final response = await _send(() => http.get(_uri("/inventory")));
+    final response = await _send(
+      () => http.get(_uri("/inventory"), headers: _headers()),
+    );
 
     if (response.statusCode == 200) {
       List data = jsonDecode(response.body);
@@ -96,7 +145,7 @@ class ApiService {
     final response = await _send(
       () => http.post(
         _uri("/ingredient"),
-        headers: {"Content-Type": "application/json"},
+        headers: _headers(json: true),
         body: jsonEncode(ingredient.toJson()),
       ),
     );
@@ -112,7 +161,7 @@ class ApiService {
     final response = await _send(
       () => http.put(
         _uri("/ingredient/$id"),
-        headers: {"Content-Type": "application/json"},
+        headers: _headers(json: true),
         body: jsonEncode(ingredient.toJson()),
       ),
     );
@@ -125,7 +174,9 @@ class ApiService {
   }
 
   static Future<void> deleteIngredient(int id) async {
-    final response = await _send(() => http.delete(_uri("/ingredient/$id")));
+    final response = await _send(
+      () => http.delete(_uri("/ingredient/$id"), headers: _headers()),
+    );
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -145,7 +196,9 @@ class ApiService {
   }
 
   static Future<List<String>> getRecipes() async {
-    final response = await _send(() => http.get(_uri("/recipes")));
+    final response = await _send(
+      () => http.get(_uri("/recipes"), headers: _headers()),
+    );
 
     if (response.statusCode == 200) {
       List data = jsonDecode(response.body);
@@ -159,7 +212,9 @@ class ApiService {
   }
 
   static Future<List<Map<String, dynamic>>> getRecipesDetailed() async {
-    final response = await _send(() => http.get(_uri("/recipes")));
+    final response = await _send(
+      () => http.get(_uri("/recipes"), headers: _headers()),
+    );
 
     if (response.statusCode == 200) {
       List data = jsonDecode(response.body);
@@ -174,7 +229,9 @@ class ApiService {
   }
 
   static Future<String?> getAiRecommendation() async {
-    final response = await _send(() => http.get(_uri("/ai-recommendation")));
+    final response = await _send(
+      () => http.get(_uri("/ai-recommendation"), headers: _headers()),
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -187,7 +244,9 @@ class ApiService {
   }
 
   static Future<List<Map<String, dynamic>>> getExpiryStatus() async {
-    final response = await _send(() => http.get(_uri("/expiry-status")));
+    final response = await _send(
+      () => http.get(_uri("/expiry-status"), headers: _headers()),
+    );
 
     if (response.statusCode == 200) {
       List data = jsonDecode(response.body);

@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
 import '../models/ingredient.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import 'add_ingredient_screen.dart';
 import 'ai_camera_screen.dart';
 import 'expiry_monitor_screen.dart';
@@ -49,6 +52,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     setState(() {
       inventory = ApiService.getInventory();
     });
+    unawaited(NotificationService.checkAndNotify());
   }
 
   List<Ingredient> _applyFilters(List<Ingredient> items) {

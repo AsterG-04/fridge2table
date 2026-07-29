@@ -1,9 +1,11 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
 import '../models/ingredient.dart';
 import '../models/sync_result.dart';
 import 'api_service.dart';
+import 'app_settings_service.dart';
 import 'delete_tombstones.dart';
 import 'secure_storage_service.dart';
 
@@ -86,6 +88,32 @@ class SupabaseService {
       // naturally idempotent.
       return false;
     }
+  }
+
+  /// Runs the same backup merge as [resolveConflicts], but only if the
+  /// current connection type is one the user has actually opted into via
+  /// the Backup & Restore screen's "Auto Backup on WiFi"/"Auto Backup on
+  /// Mobile Data" toggles (AppSettingsService). Used for automatic
+  /// triggers -- app launch, and the periodic while-active check when
+  /// "Background Backup" is on -- where honoring those toggles matters;
+  /// the screen's own manual "Back Up Now" button calls [resolveConflicts]
+  /// directly instead, since a deliberate tap should always run regardless
+  /// of connection type.
+  static Future<void> autoBackupIfAllowed() async {
+    if (!SupabaseConfig.isConfigured) return;
+    if (_userId == null) return;
+
+    final results = await Connectivity().checkConnectivity();
+    final onWifi = results.contains(ConnectivityResult.wifi);
+    final onMobile = results.contains(ConnectivityResult.mobile);
+
+    final wifiAllowed = await AppSettingsService.getAutoBackupOnWifi();
+    final mobileAllowed = await AppSettingsService.getAutoBackupOnMobileData();
+
+    final shouldBackup = (onWifi && wifiAllowed) || (onMobile && mobileAllowed);
+    if (!shouldBackup) return;
+
+    await resolveConflicts();
   }
 
   static bool _isNewer(DateTime? a, DateTime? b) {

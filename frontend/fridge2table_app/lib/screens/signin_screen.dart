@@ -5,6 +5,7 @@ import '../config/supabase_config.dart';
 import '../constants/colors.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import 'create_account_screen.dart';
 
@@ -30,7 +31,9 @@ class _SignInScreenState extends State<SignInScreen> {
   void initState() {
     super.initState();
     if (widget.emailJustVerified) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _showEmailVerifiedDialog());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _showEmailVerifiedDialog(),
+      );
     }
   }
 
@@ -46,7 +49,11 @@ class _SignInScreenState extends State<SignInScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.check_circle, color: AppColors.chipGreenText, size: 32),
+        icon: const Icon(
+          Icons.check_circle,
+          color: AppColors.chipGreenText,
+          size: 32,
+        ),
         title: const Text("Email verified"),
         content: const Text(
           "✅ Your email is verified! Please sign in to continue.",
@@ -59,9 +66,17 @@ class _SignInScreenState extends State<SignInScreen> {
               onPressed: () => Navigator.pop(dialogContext),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.darkGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text("Sign In", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "Sign In",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -98,7 +113,8 @@ class _SignInScreenState extends State<SignInScreen> {
         return;
       }
 
-      final name = (user.userMetadata?["name"] as String?) ??
+      final name =
+          (user.userMetadata?["name"] as String?) ??
           await AuthService.getName() ??
           email.split("@").first;
       await AuthService.cacheIdentity(name: name, email: email);
@@ -106,6 +122,7 @@ class _SignInScreenState extends State<SignInScreen> {
       // Loads the user's cloud data now that they're authenticated, rather
       // than waiting for MainScreen's own background sync to kick in.
       await SupabaseService.resolveConflicts();
+      await NotificationService.requestPermission();
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -135,7 +152,9 @@ class _SignInScreenState extends State<SignInScreen> {
       _showError("Cloud sign-in isn't configured yet");
       return;
     }
-    debugPrint("[GoogleAuth] Launching signInWithOAuth, redirectTo=${SupabaseConfig.oauthRedirect}");
+    debugPrint(
+      "[GoogleAuth] Launching signInWithOAuth, redirectTo=${SupabaseConfig.oauthRedirect}",
+    );
     try {
       final launched = await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
@@ -158,7 +177,74 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    final controller = TextEditingController(
+      text: _emailController.text.trim(),
+    );
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Reset your password"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Enter your email and we'll send you a password reset link.",
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: "Email address",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: const Text("Send Link"),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    if (email == null || email.isEmpty) return;
+    if (!mounted) return;
+
+    if (!SupabaseConfig.isConfigured) {
+      _showError("Cloud sign-in isn't configured yet");
+      return;
+    }
+
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Check your email for a password reset link"),
+        ),
+      );
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } catch (e) {
+      _showError("Couldn't send reset email — check your connection");
+    }
   }
 
   @override
@@ -196,18 +282,15 @@ class _SignInScreenState extends State<SignInScreen> {
                         size: 18,
                         color: AppColors.textGray,
                       ),
-                      onPressed: () => setState(
-                        () => _obscurePassword = !_obscurePassword,
-                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
 
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Password reset coming soon")),
-                      ),
+                      onPressed: _showForgotPasswordDialog,
                       child: const Text(
                         "Forgot password?",
                         style: TextStyle(
@@ -227,8 +310,9 @@ class _SignInScreenState extends State<SignInScreen> {
                       onPressed: _submitting ? null : _signIn,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.darkGreen,
-                        disabledBackgroundColor:
-                            AppColors.darkGreen.withValues(alpha: 0.5),
+                        disabledBackgroundColor: AppColors.darkGreen.withValues(
+                          alpha: 0.5,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -303,10 +387,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFFEA4335),
-                                  Color(0xFFFBBC04),
-                                ],
+                                colors: [Color(0xFFEA4335), Color(0xFFFBBC04)],
                               ),
                             ),
                             alignment: Alignment.center,
@@ -403,7 +484,11 @@ class _SignInScreenState extends State<SignInScreen> {
               color: Colors.white.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.eco_outlined, color: Colors.white, size: 22),
+            child: const Icon(
+              Icons.eco_outlined,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
           const SizedBox(height: 24),
           const Text(

@@ -346,6 +346,13 @@
         "Bake at high heat until the crust is golden and cheese bubbles",
         "Finish with fresh basil and a drizzle of olive oil"
       ],
+      "step_timers": [
+        null,
+        null,
+        null,
+        12,
+        null
+      ],
       "prep_time": "20 min",
       "cook_time": "12 min",
       "difficulty": "Medium",
@@ -410,6 +417,13 @@
         "Drizzle with olive oil, salt and pepper",
         "Bake for 15-18 minutes until salmon flakes easily",
         "Squeeze lemon over the top before serving"
+      ],
+      "step_timers": [
+        null,
+        null,
+        null,
+        17,
+        null
       ],
       "prep_time": "10 min",
       "cook_time": "18 min",
@@ -476,6 +490,13 @@
         "Blend until smooth",
         "Stir in a splash of milk for creaminess",
         "Season and serve with crusty bread"
+      ],
+      "step_timers": [
+        null,
+        15,
+        null,
+        null,
+        null
       ],
       "prep_time": "10 min",
       "cook_time": "20 min",
@@ -1555,6 +1576,13 @@
         "Bake for 40-45 minutes until soft",
         "Slice open and add a knob of butter",
         "Season with salt and serve"
+      ],
+      "step_timers": [
+        null,
+        null,
+        42,
+        null,
+        null
       ],
       "prep_time": "5 min",
       "cook_time": "45 min",

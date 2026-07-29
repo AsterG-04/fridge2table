@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 
 class DietPreferencesScreen extends StatefulWidget {
   const DietPreferencesScreen({super.key});
@@ -189,6 +190,7 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
 
     await AuthService.saveDietPreferences(diets);
     await AuthService.saveAllergies(allergies);
+    await NotificationService.requestPermission();
 
     if (!mounted) return;
     Navigator.pushReplacement(

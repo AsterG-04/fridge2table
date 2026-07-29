@@ -11,8 +11,9 @@ app = FastAPI(title="Fridge2Table API")
 
 # The app is a native mobile client (no browser origin to restrict), and
 # this backend has no cookie-based auth to protect -- every request is
-# already scoped by an explicit user_id query param. Open CORS just avoids
-# friction for anyone hitting this from a browser (docs, manual testing).
+# authenticated via a bearer JWT (see app/auth.py), not cookies/origin.
+# Open CORS just avoids friction for anyone hitting this from a browser
+# (docs, manual testing).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

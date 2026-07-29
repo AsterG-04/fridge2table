@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
 import '../services/api_service.dart';
+import '../services/app_settings_service.dart';
 import 'cloud_sync_screen.dart';
 import 'privacy_screen.dart';
 import 'terms_screen.dart';
@@ -17,29 +18,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
   bool _expiryAlerts = true;
   bool _recipeSuggestions = false;
-  bool _darkMode = false;
+  final bool _darkMode = false;
   bool _clearing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationsToggle();
+  }
+
+  Future<void> _loadNotificationsToggle() async {
+    final enabled = await AppSettingsService.getNotificationsEnabled();
+    if (mounted) setState(() => _pushNotifications = enabled);
+  }
 
   void _showHelp() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Manage notifications, appearance, and your data.")),
+      const SnackBar(
+        content: Text("Manage notifications, appearance, and your data."),
+      ),
     );
   }
 
   void _openCloudSync() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const CloudSyncScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CloudSyncScreen()),
+    );
   }
 
   void _openTerms() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TermsScreen()),
+    );
   }
 
   void _openPrivacy() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+    );
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _confirmClearData() async {
@@ -51,10 +76,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           "This permanently deletes every ingredient in your pantry. This cannot be undone.",
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text("Cancel"),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text("Clear Data", style: TextStyle(color: Color(0xFFC0392B))),
+            child: const Text(
+              "Clear Data",
+              style: TextStyle(color: Color(0xFFC0392B)),
+            ),
           ),
         ],
       ),
@@ -72,7 +103,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
       if (mounted) _showSnack("Pantry data cleared");
     } catch (_) {
-      if (mounted) _showSnack("Couldn't clear all data — check your connection");
+      if (mounted) {
+        _showSnack("Couldn't clear all data — check your connection");
+      }
     } finally {
       if (mounted) setState(() => _clearing = false);
     }
@@ -93,9 +126,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _sectionCard(
                     title: "Notifications",
                     children: [
-                      _toggleRow("Push Notifications", "All app alerts", _pushNotifications, (v) => setState(() => _pushNotifications = v)),
-                      _toggleRow("Expiry Alerts", "Before items expire", _expiryAlerts, (v) => setState(() => _expiryAlerts = v)),
-                      _toggleRow("Recipe Suggestions", "Daily recommendations", _recipeSuggestions, (v) => setState(() => _recipeSuggestions = v)),
+                      _toggleRow(
+                        "Push Notifications",
+                        "All app alerts",
+                        _pushNotifications,
+                        (v) {
+                          setState(() => _pushNotifications = v);
+                          AppSettingsService.setNotificationsEnabled(v);
+                        },
+                      ),
+                      _toggleRow(
+                        "Expiry Alerts",
+                        "Before items expire",
+                        _expiryAlerts,
+                        (v) => setState(() => _expiryAlerts = v),
+                      ),
+                      _toggleRow(
+                        "Recipe Suggestions",
+                        "Daily recommendations",
+                        _recipeSuggestions,
+                        (v) => setState(() => _recipeSuggestions = v),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -103,17 +154,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: "Appearance",
                     children: [
                       _toggleRow("Dark Mode", null, _darkMode, (v) {
-                        setState(() => _darkMode = v);
-                        _showSnack("Dark mode coming soon");
+                        _showSnack(
+                          "Dark mode is coming in a future update. Stay tuned!",
+                        );
                       }),
-                      _navRow("Language", "English", () => _showSnack("More languages coming soon")),
+                      _navRow(
+                        "Language",
+                        "English",
+                        () => _showSnack("More languages coming soon"),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   _sectionCard(
                     title: "Data & Privacy",
                     children: [
-                      _navRow("Cloud Sync", "Auto", _openCloudSync),
+                      _navRow("Backup & Restore", "Auto", _openCloudSync),
                       _navRow("Terms of Service", null, _openTerms),
                       _navRow("Privacy Policy", null, _openPrivacy),
                       _navRow(
@@ -122,15 +178,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _clearing ? null : _confirmClearData,
                         destructive: true,
                         trailing: _clearing
-                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : null,
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Text("Fridge2Table v1.0.0", style: TextStyle(color: AppColors.textGray, fontSize: 12)),
+                  const Text(
+                    "Fridge2Table v1.0.0",
+                    style: TextStyle(color: AppColors.textGray, fontSize: 12),
+                  ),
                   const SizedBox(height: 4),
-                  const Text("FYP Project · 2026", style: TextStyle(color: AppColors.textGray, fontSize: 11)),
+                  const Text(
+                    "FYP Project · 2026",
+                    style: TextStyle(color: AppColors.textGray, fontSize: 11),
+                  ),
                 ],
               ),
             ),
@@ -145,7 +213,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       width: double.infinity,
       decoration: const BoxDecoration(
         color: AppColors.darkGreen,
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28)),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
       ),
       padding: const EdgeInsets.fromLTRB(12, 48, 12, 16),
       child: Row(
@@ -155,15 +226,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Container(
               width: 36,
               height: 36,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.chevron_left,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
           const Expanded(
             child: Text(
               "Settings",
               textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: "Outfit", fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white),
+              style: TextStyle(
+                fontFamily: "Outfit",
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                color: Colors.white,
+              ),
             ),
           ),
           GestureDetector(
@@ -171,8 +254,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Container(
               width: 36,
               height: 36,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
-              child: const Icon(Icons.help_outline, color: Colors.white, size: 18),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.help_outline,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -183,19 +273,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _sectionCard({required String title, required List<Widget> children}) {
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-            child: Text(title, style: const TextStyle(color: AppColors.textGray, fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: AppColors.textGray,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           for (int i = 0; i < children.length; i++)
             Container(
               decoration: i == children.length - 1
                   ? null
-                  : const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.borderGreen))),
+                  : const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: AppColors.borderGreen),
+                      ),
+                    ),
               child: children[i],
             ),
         ],
@@ -203,7 +307,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _toggleRow(String title, String? subtitle, bool value, ValueChanged<bool> onChanged) {
+  Widget _toggleRow(
+    String title,
+    String? subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -212,18 +321,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.w600)),
-                if (subtitle != null) Text(subtitle, style: const TextStyle(color: AppColors.textGray, fontSize: 12)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: AppColors.textGray,
+                      fontSize: 12,
+                    ),
+                  ),
               ],
             ),
           ),
-          Switch(value: value, onChanged: onChanged, activeThumbColor: AppColors.darkGreen),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: AppColors.darkGreen,
+          ),
         ],
       ),
     );
   }
 
-  Widget _navRow(String title, String? value, VoidCallback? onTap, {bool destructive = false, Widget? trailing}) {
+  Widget _navRow(
+    String title,
+    String? value,
+    VoidCallback? onTap, {
+    bool destructive = false,
+    Widget? trailing,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Padding(
@@ -234,7 +367,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(
                 title,
                 style: TextStyle(
-                  color: destructive ? const Color(0xFFC0392B) : AppColors.textDark,
+                  color: destructive
+                      ? const Color(0xFFC0392B)
+                      : AppColors.textDark,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -244,10 +379,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               trailing
             else ...[
               if (value != null) ...[
-                Text(value, style: const TextStyle(color: AppColors.textGray, fontSize: 13)),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: AppColors.textGray,
+                    fontSize: 13,
+                  ),
+                ),
                 const SizedBox(width: 6),
               ],
-              Icon(Icons.chevron_right, size: 15, color: destructive ? const Color(0xFFC0392B) : AppColors.textGray),
+              Icon(
+                Icons.chevron_right,
+                size: 15,
+                color: destructive
+                    ? const Color(0xFFC0392B)
+                    : AppColors.textGray,
+              ),
             ],
           ],
         ),

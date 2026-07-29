@@ -6,7 +6,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/api_config.dart';
 import 'config/supabase_config.dart';
 import 'constants/colors.dart';
+import 'services/app_settings_service.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 import 'services/supabase_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/inventory_screen.dart';
@@ -16,29 +18,33 @@ import 'screens/ai_camera_screen.dart';
 import 'screens/signin_screen.dart';
 import 'screens/splash_screen.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ApiConfig.initialize();
   await SupabaseService.initialize();
+  // Sets up the notification channel only -- does NOT request permission
+  // yet, since that's a user-facing prompt deliberately deferred until
+  // right after sign-in (see every navigation to MainScreen below).
+  await NotificationService.initialize();
 
-  runApp(
-    const Fridge2TableApp(),
-  );
+  runApp(const Fridge2TableApp());
 }
 
+// Shared at the top level (rather than kept private to
+// _Fridge2TableAppState) so ApiService -- a plain class with no
+// BuildContext of its own -- can also navigate to SignInScreen directly,
+// specifically for the "a 401 means the session is dead, kick the user
+// back to sign-in" case.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class Fridge2TableApp extends StatefulWidget {
-
   const Fridge2TableApp({super.key});
 
   @override
   State<Fridge2TableApp> createState() => _Fridge2TableAppState();
 }
 
-
 class _Fridge2TableAppState extends State<Fridge2TableApp> {
-  final _navigatorKey = GlobalKey<NavigatorState>();
   StreamSubscription<AuthState>? _authSub;
 
   @override
@@ -51,33 +57,42 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
     // own navigation directly via suppressRootAuthListener, since it can
     // just await the result.
     if (SupabaseConfig.isConfigured) {
-      _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
-        debugPrint(
-          "[AuthListener] event=${data.event} hasSession=${data.session != null} "
-          "userId=${data.session?.user.id} email=${data.session?.user.email} "
-          "suppressed=${SupabaseService.suppressRootAuthListener}",
-        );
-        if (data.event != AuthChangeEvent.signedIn || data.session == null) return;
-        if (SupabaseService.suppressRootAuthListener) return;
+      _authSub = Supabase.instance.client.auth.onAuthStateChange.listen(
+        (data) async {
+          debugPrint(
+            "[AuthListener] event=${data.event} hasSession=${data.session != null} "
+            "userId=${data.session?.user.id} email=${data.session?.user.email} "
+            "suppressed=${SupabaseService.suppressRootAuthListener}",
+          );
+          if (data.event != AuthChangeEvent.signedIn || data.session == null) {
+            return;
+          }
+          if (SupabaseService.suppressRootAuthListener) return;
 
-        try {
-          await _handleSignedIn(data.session!.user);
-        } catch (error, stackTrace) {
-          debugPrint("[AuthListener] Unhandled error while processing signedIn event: $error\n$stackTrace");
+          try {
+            await _handleSignedIn(data.session!.user);
+          } catch (error, stackTrace) {
+            debugPrint(
+              "[AuthListener] Unhandled error while processing signedIn event: $error\n$stackTrace",
+            );
+            await _showAuthProblemAndReturnToSignIn(error);
+          }
+        },
+        onError: (Object error, StackTrace stackTrace) async {
+          // Reached for failures that never produce a signedIn event at all —
+          // most commonly an expired or already-used confirmation link
+          // (Supabase's own hosted /verify redirects straight to an error
+          // instead of exchanging a session), or an invalid/reused PKCE code.
+          // Previously this was silently debugPrint-only, which is exactly
+          // what made the screen look like nothing happened: the deep link
+          // lands, the exchange fails, and the app just sits on whatever was
+          // already showing with zero feedback.
+          debugPrint(
+            "[AuthListener] Stream error: ${error.runtimeType} $error\n$stackTrace",
+          );
           await _showAuthProblemAndReturnToSignIn(error);
-        }
-      }, onError: (Object error, StackTrace stackTrace) async {
-        // Reached for failures that never produce a signedIn event at all —
-        // most commonly an expired or already-used confirmation link
-        // (Supabase's own hosted /verify redirects straight to an error
-        // instead of exchanging a session), or an invalid/reused PKCE code.
-        // Previously this was silently debugPrint-only, which is exactly
-        // what made the screen look like nothing happened: the deep link
-        // lands, the exchange fails, and the app just sits on whatever was
-        // already showing with zero feedback.
-        debugPrint("[AuthListener] Stream error: ${error.runtimeType} $error\n$stackTrace");
-        await _showAuthProblemAndReturnToSignIn(error);
-      });
+        },
+      );
     }
   }
 
@@ -98,13 +113,17 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
     final message = _friendlyAuthErrorMessage(error);
     debugPrint("[AuthListener] Showing auth problem dialog: $message");
 
-    final dialogContext = _navigatorKey.currentContext;
+    final dialogContext = rootNavigatorKey.currentContext;
     if (dialogContext != null && dialogContext.mounted) {
       await showDialog<void>(
         context: dialogContext,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          icon: const Icon(Icons.error_outline, color: Color(0xFFC0392B), size: 32),
+          icon: const Icon(
+            Icons.error_outline,
+            color: Color(0xFFC0392B),
+            size: 32,
+          ),
           title: const Text("Couldn't confirm email"),
           content: Text(message, textAlign: TextAlign.center),
           actions: [
@@ -114,9 +133,17 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
                 onPressed: () => Navigator.pop(ctx),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.darkGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text("OK", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "OK",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
@@ -126,7 +153,7 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
     if (!mounted) return;
 
     debugPrint("[AuthListener] Navigating to SignInScreen after auth problem");
-    _navigatorKey.currentState?.pushAndRemoveUntil(
+    rootNavigatorKey.currentState?.pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const SignInScreen()),
       (route) => false,
     );
@@ -140,11 +167,14 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
     // "google" doesn't depend on guessing Supabase's exact provider string
     // and still generalizes to any provider added later.
     final isOAuthProvider = provider != null && provider != "email";
-    debugPrint("[AuthListener] provider=$provider isOAuthProvider=$isOAuthProvider");
+    debugPrint(
+      "[AuthListener] provider=$provider isOAuthProvider=$isOAuthProvider",
+    );
 
     if (isOAuthProvider) {
       final email = user.email ?? "";
-      final name = (user.userMetadata?["name"] as String?) ??
+      final name =
+          (user.userMetadata?["name"] as String?) ??
           (email.contains("@") ? email.split("@").first : "there");
 
       // Google's own account picker already happened in the browser before
@@ -157,18 +187,24 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
       // few seconds of each other means this session is that account's
       // very first sign-in.
       final createdAt = DateTime.tryParse(user.createdAt);
-      final lastSignInAt =
-          user.lastSignInAt == null ? null : DateTime.tryParse(user.lastSignInAt!);
-      final isNewUser = createdAt != null &&
+      final lastSignInAt = user.lastSignInAt == null
+          ? null
+          : DateTime.tryParse(user.lastSignInAt!);
+      final isNewUser =
+          createdAt != null &&
           lastSignInAt != null &&
-          lastSignInAt.difference(createdAt).abs() < const Duration(seconds: 10);
-      debugPrint("[AuthListener] OAuth sign-in ($provider) for $email — isNewUser=$isNewUser");
+          lastSignInAt.difference(createdAt).abs() <
+              const Duration(seconds: 10);
+      debugPrint(
+        "[AuthListener] OAuth sign-in ($provider) for $email — isNewUser=$isNewUser",
+      );
 
       if (!mounted) return;
       var confirmed = true;
-      final dialogContext = _navigatorKey.currentContext;
+      final dialogContext = rootNavigatorKey.currentContext;
       if (dialogContext != null && dialogContext.mounted) {
-        confirmed = await showDialog<bool>(
+        confirmed =
+            await showDialog<bool>(
               context: dialogContext,
               barrierDismissible: false,
               builder: (ctx) => AlertDialog(
@@ -191,7 +227,9 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, true),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.darkGreen),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.darkGreen,
+                    ),
                     child: Text(isNewUser ? "Create & Continue" : "Continue"),
                   ),
                 ],
@@ -202,7 +240,9 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
       if (!mounted) return;
 
       if (!confirmed) {
-        debugPrint("[AuthListener] User declined the confirmation — signing back out");
+        debugPrint(
+          "[AuthListener] User declined the confirmation — signing back out",
+        );
         await Supabase.instance.client.auth.signOut();
         return;
       }
@@ -210,9 +250,10 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
       debugPrint("[AuthListener] Confirmed — caching identity and syncing");
       await AuthService.cacheIdentity(name: name, email: email);
       await SupabaseService.resolveConflicts();
+      await NotificationService.requestPermission();
 
       debugPrint("[AuthListener] Navigating to MainScreen");
-      _navigatorKey.currentState?.pushAndRemoveUntil(
+      rootNavigatorKey.currentState?.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainScreen()),
         (route) => false,
       );
@@ -221,20 +262,30 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
       // deep-link redirect, but confirming an email shouldn't silently log
       // the user in — sign back out and send them to Sign In to enter
       // their credentials explicitly.
-      debugPrint("[AuthListener] Email confirmation link landed for ${user.email} — signing back out, not auto-logging in");
+      debugPrint(
+        "[AuthListener] Email confirmation link landed for ${user.email} — signing back out, not auto-logging in",
+      );
       try {
         await Supabase.instance.client.auth.signOut();
-        debugPrint("[AuthListener] Sign-out after email confirmation succeeded");
+        debugPrint(
+          "[AuthListener] Sign-out after email confirmation succeeded",
+        );
       } catch (error, stackTrace) {
         // Don't let a signOut failure (e.g. offline right at this instant)
         // swallow navigation — the confirmation dialog is more important
         // than whether the now-redundant session got revoked server-side.
-        debugPrint("[AuthListener] Sign-out after email confirmation failed (continuing anyway): $error\n$stackTrace");
+        debugPrint(
+          "[AuthListener] Sign-out after email confirmation failed (continuing anyway): $error\n$stackTrace",
+        );
       }
       if (!mounted) return;
-      debugPrint("[AuthListener] Navigating to SignInScreen with emailJustVerified=true");
-      _navigatorKey.currentState?.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const SignInScreen(emailJustVerified: true)),
+      debugPrint(
+        "[AuthListener] Navigating to SignInScreen with emailJustVerified=true",
+      );
+      rootNavigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const SignInScreen(emailJustVerified: true),
+        ),
         (route) => false,
       );
     }
@@ -254,37 +305,34 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
     // flow entirely for a returning user with a valid session — they should
     // only see it again after an explicit logout or a fresh install, not
     // just from closing and reopening the app.
-    final hasPersistedSession = SupabaseConfig.isConfigured &&
+    final hasPersistedSession =
+        SupabaseConfig.isConfigured &&
         Supabase.instance.client.auth.currentSession != null;
     debugPrint("[Startup] hasPersistedSession=$hasPersistedSession");
 
     return MaterialApp(
-      navigatorKey: _navigatorKey,
+      navigatorKey: rootNavigatorKey,
       debugShowCheckedModeBanner: false,
       title: "Fridge2Table",
-      theme: ThemeData(
-        fontFamily: "DM Sans",
-      ),
+      theme: ThemeData(fontFamily: "DM Sans"),
       home: hasPersistedSession ? const MainScreen() : const SplashScreen(),
     );
   }
 }
 
-
 class MainScreen extends StatefulWidget {
-
   const MainScreen({super.key});
 
   @override
-  State<MainScreen> createState() =>
-      _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-
-class _MainScreenState
-    extends State<MainScreen> {
-
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
+
+  Timer? _backgroundBackupTimer;
+
+  static const _backgroundBackupInterval = Duration(minutes: 15);
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -296,25 +344,58 @@ class _MainScreenState
   @override
   void initState() {
     super.initState();
-    // Silent best-effort background sync — never blocks the UI and any
-    // failure (offline, not configured yet) is simply ignored.
-    unawaited(SupabaseService.resolveConflicts());
+    WidgetsBinding.instance.addObserver(this);
+    // Silent best-effort backup — never blocks the UI and any failure
+    // (offline, not configured yet, user hasn't opted into this connection
+    // type) is simply ignored. Respects the "Auto Backup on WiFi"/"Auto
+    // Backup on Mobile Data" toggles from the Backup & Restore screen.
+    unawaited(SupabaseService.autoBackupIfAllowed());
+    _startBackgroundBackupTimer();
+  }
+
+  /// "Background Backup" (AppSettingsService) means periodic backups while
+  /// the app is open, on top of the one-shot launch trigger above -- this
+  /// timer runs for as long as MainScreen is mounted and re-checks the
+  /// toggle on every tick (rather than only at startup) so turning it off
+  /// mid-session in the Backup & Restore screen takes effect immediately.
+  void _startBackgroundBackupTimer() {
+    _backgroundBackupTimer = Timer.periodic(_backgroundBackupInterval, (
+      _,
+    ) async {
+      if (await AppSettingsService.getBackgroundBackupEnabled()) {
+        await SupabaseService.autoBackupIfAllowed();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _backgroundBackupTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Re-checks expiry notifications whenever the app comes back to the
+    // foreground (e.g. reopened from the app switcher) -- not just on the
+    // initial launch, since an ingredient could have crossed into
+    // "expiring soon"/"expired" during however long the app was backgrounded.
+    if (state == AppLifecycleState.resumed) {
+      unawaited(NotificationService.checkAndNotify());
+    }
   }
 
   void _openScanner() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const AiCameraScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const AiCameraScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       body: _screens[_currentIndex],
 
       bottomNavigationBar: _buildBottomNav(),
@@ -346,7 +427,11 @@ class _MainScreenState
                 _navItem(icon: Icons.home, label: "Home", index: 0),
                 _navItem(icon: Icons.kitchen, label: "Pantry", index: 1),
                 const SizedBox(width: 56),
-                _navItem(icon: Icons.restaurant_menu, label: "Recipes", index: 2),
+                _navItem(
+                  icon: Icons.restaurant_menu,
+                  label: "Recipes",
+                  index: 2,
+                ),
                 _navItem(icon: Icons.person, label: "Profile", index: 3),
               ],
             ),
