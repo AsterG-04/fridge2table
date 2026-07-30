@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// up), not something tied to a specific account's pantry.
 class AppSettingsService {
   static const _kNotificationsEnabled = "settings_notifications_enabled";
+  static const _kRecipeSuggestionsEnabled = "settings_recipe_suggestions_enabled";
   static const _kAutoBackupOnWifi = "settings_auto_backup_wifi";
   static const _kAutoBackupOnMobileData = "settings_auto_backup_mobile_data";
   static const _kBackgroundBackupEnabled = "settings_background_backup";
@@ -20,6 +21,16 @@ class AppSettingsService {
   static Future<void> setNotificationsEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kNotificationsEnabled, value);
+  }
+
+  static Future<bool> getRecipeSuggestionsEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kRecipeSuggestionsEnabled) ?? true;
+  }
+
+  static Future<void> setRecipeSuggestionsEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kRecipeSuggestionsEnabled, value);
   }
 
   static Future<bool> getAutoBackupOnWifi() async {

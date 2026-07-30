@@ -22,6 +22,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
   late Future<List<Ingredient>> inventory;
 
   final _searchController = TextEditingController();
+  bool _selectionMode = false;
+  final Set<int> _selectedIngredientIds = {};
   String _query = "";
   String _activeFilter = "All";
 
@@ -180,6 +182,69 @@ class _InventoryScreenState extends State<InventoryScreen> {
     _refresh();
   }
 
+  void _toggleSelectionMode() {
+    setState(() {
+      _selectionMode = !_selectionMode;
+      if (!_selectionMode) {
+        _selectedIngredientIds.clear();
+      }
+    });
+  }
+
+  void _toggleIngredientSelection(int? id) {
+    if (id == null || !_selectionMode) return;
+    setState(() {
+      if (_selectedIngredientIds.contains(id)) {
+        _selectedIngredientIds.remove(id);
+      } else {
+        _selectedIngredientIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _deleteSelectedIngredients() async {
+    if (_selectedIngredientIds.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Delete selected ingredients?"),
+        content: const Text(
+          "This permanently removes the selected items from your pantry.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFC0392B),
+            ),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    final ids = _selectedIngredientIds.toList();
+    for (final id in ids) {
+      if (!mounted) return;
+      await ApiService.deleteIngredient(id);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _selectedIngredientIds.clear();
+      _selectionMode = false;
+    });
+    _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -322,6 +387,27 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ),
               const SizedBox(width: 8),
               GestureDetector(
+                onTap: _selectionMode ? _deleteSelectedIngredients : _toggleSelectionMode,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _selectionMode
+                        ? (_selectedIngredientIds.isEmpty
+                            ? Icons.delete_outline
+                            : Icons.delete_outline)
+                        : Icons.checklist_outlined,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
                 onTap: _openScanner,
                 child: Container(
                   width: 36,
@@ -434,118 +520,169 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ? item.quantity.toInt().toString()
         : item.quantity.toString();
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: chipBg,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              _initials(item.name),
-              style: TextStyle(
-                color: chipText,
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
+    return GestureDetector(
+      onTap: _selectionMode
+          ? () => _toggleIngredientSelection(item.id)
+          : () => _openEdit(item),
+      onLongPress: () {
+        if (!_selectionMode) {
+          _toggleSelectionMode();
+          _toggleIngredientSelection(item.id);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            if (_selectionMode)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: item.id != null && _selectedIngredientIds.contains(item.id)
+                          ? AppColors.darkGreen
+                          : AppColors.borderGreen,
+                      width: 1.5,
+                    ),
+                    color: item.id != null && _selectedIngredientIds.contains(item.id)
+                        ? AppColors.darkGreen
+                        : Colors.white,
+                  ),
+                  child: item.id != null && _selectedIngredientIds.contains(item.id)
+                      ? const Icon(Icons.check, color: Colors.white, size: 14)
+                      : null,
+                ),
+              ),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: chipBg,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                _initials(item.name),
+                style: TextStyle(
+                  color: chipText,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: const TextStyle(
-                    color: AppColors.textDark,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  "$quantityLabel ${item.unit} · ${item.category ?? 'Uncategorized'}",
-                  style: const TextStyle(
-                    color: AppColors.textGray,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (badge != null) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: badge.$1,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    badge.$3,
-                    style: TextStyle(
-                      color: badge.$2,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 4),
-              Row(
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: () => _openEdit(item),
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: const Icon(
-                        Icons.edit_outlined,
-                        size: 13,
-                        color: AppColors.textGray,
-                      ),
+                  Text(
+                    item.name,
+                    style: const TextStyle(
+                      color: AppColors.textDark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: () => _deleteIngredient(item),
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: const Icon(
-                        Icons.delete_outline,
-                        size: 13,
-                        color: Color(0xFFC0392B),
-                      ),
+                  Text(
+                    "$quantityLabel ${item.unit} · ${item.category ?? 'Uncategorized'}",
+                    style: const TextStyle(
+                      color: AppColors.textGray,
+                      fontSize: 12,
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
-        ],
+            ),
+            if (!_selectionMode)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (badge != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badge.$1,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        badge.$3,
+                        style: TextStyle(
+                          color: badge.$2,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => _openEdit(item),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Icon(
+                            Icons.edit_outlined,
+                            size: 13,
+                            color: AppColors.textGray,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => _deleteIngredient(item),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            size: 13,
+                            color: Color(0xFFC0392B),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            else if (badge != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: badge.$1,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  badge.$3,
+                  style: TextStyle(
+                    color: badge.$2,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

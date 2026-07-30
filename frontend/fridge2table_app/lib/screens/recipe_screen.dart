@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../models/cooked_history_entry.dart';
 import '../models/recipe_detail.dart';
 import '../services/api_service.dart';
+import '../services/app_settings_service.dart';
 import '../services/saved_recipes_store.dart';
 import '../widgets/async_state.dart';
 import 'recipe_detail_screen.dart';
@@ -25,6 +28,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
   String _selectedFilter = 'AI Picks';
   final TextEditingController _searchController = TextEditingController();
   String? _aiRecommendedName;
+  bool _showRecommendations = true;
 
   final List<String> _filters = [
     'AI Picks',
@@ -48,7 +52,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
     _recipes = ApiService.getRecipesDetailed();
     _searchController.addListener(() => setState(() {}));
     _loadStores();
-    _loadAiRecommendation();
+    unawaited(_loadSettings());
 
     final ingredient = widget.initialIngredientFilter;
     if (ingredient != null) {
@@ -62,7 +66,28 @@ class _RecipeScreenState extends State<RecipeScreen> {
     }
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    unawaited(_loadSettings());
+  }
+
+  Future<void> _loadSettings() async {
+    final enabled = await AppSettingsService.getRecipeSuggestionsEnabled();
+    if (!mounted) return;
+    setState(() {
+      _showRecommendations = enabled;
+      if (!enabled) {
+        _aiRecommendedName = null;
+      }
+    });
+    if (enabled) {
+      await _loadAiRecommendation();
+    }
+  }
+
   Future<void> _loadAiRecommendation() async {
+    if (!_showRecommendations) return;
     try {
       final name = await ApiService.getAiRecommendation();
       if (mounted) setState(() => _aiRecommendedName = name);
@@ -318,6 +343,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
   }
 
   Widget _buildAiBanner() {
+    if (!_showRecommendations) return const SizedBox.shrink();
     final name = _aiRecommendedName;
     if (name == null) return const SizedBox.shrink();
 

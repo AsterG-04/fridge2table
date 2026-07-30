@@ -257,24 +257,45 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  Text(
-                    "Good morning,",
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/images/f2t_logo.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Good morning,",
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.white.withValues(alpha: 0.5),
                     ),
                   ),
-                  Text(
-                    _userName,
-                    style: const TextStyle(
-                      fontFamily: "Outfit",
-                      fontWeight: FontWeight.w600,
-                      fontSize: 22,
-                      color: Colors.white,
-                    ),
+                      Text(
+                        _userName,
+                        style: const TextStyle(
+                          fontFamily: "Outfit",
+                          fontWeight: FontWeight.w600,
+                          fontSize: 22,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

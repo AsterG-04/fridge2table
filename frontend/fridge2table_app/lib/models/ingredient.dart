@@ -23,12 +23,14 @@ class Ingredient {
   // (sending data to FastAPI)
   Map<String, dynamic> toJson() {
     return {
+      "id": id,
       "name": name,
       "quantity": quantity,
       "unit": unit,
       "expiry_date": expiryDate,
       "category": category,
       "location": location,
+      "updated_at": (updatedAt ?? DateTime.now().toUtc()).toIso8601String(),
     };
   }
 

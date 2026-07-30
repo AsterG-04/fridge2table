@@ -257,15 +257,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                "My Profile",
-                style: TextStyle(
-                  fontFamily: "Outfit",
-                  fontWeight: FontWeight.w600,
-                  fontSize: 22,
-                  color: Colors.white,
+              GestureDetector(
+                onTap: () => Navigator.maybePop(context),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.chevron_left,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  "My Profile",
+                  style: TextStyle(
+                    fontFamily: "Outfit",
+                    fontWeight: FontWeight.w600,
+                    fontSize: 22,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               GestureDetector(

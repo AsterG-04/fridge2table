@@ -17,7 +17,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
   bool _expiryAlerts = true;
-  bool _recipeSuggestions = false;
+  bool _recipeSuggestions = true;
   final bool _darkMode = false;
   bool _clearing = false;
 
@@ -28,8 +28,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadNotificationsToggle() async {
-    final enabled = await AppSettingsService.getNotificationsEnabled();
-    if (mounted) setState(() => _pushNotifications = enabled);
+    final notificationsEnabled = await AppSettingsService.getNotificationsEnabled();
+    final recipeSuggestionsEnabled = await AppSettingsService.getRecipeSuggestionsEnabled();
+    if (mounted) {
+      setState(() {
+        _pushNotifications = notificationsEnabled;
+        _recipeSuggestions = recipeSuggestionsEnabled;
+      });
+    }
   }
 
   void _showHelp() {
@@ -145,7 +151,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         "Recipe Suggestions",
                         "Daily recommendations",
                         _recipeSuggestions,
-                        (v) => setState(() => _recipeSuggestions = v),
+                        (v) {
+                          setState(() => _recipeSuggestions = v);
+                          AppSettingsService.setRecipeSuggestionsEnabled(v);
+                        },
                       ),
                     ],
                   ),
