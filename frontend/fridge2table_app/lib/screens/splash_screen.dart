@@ -93,11 +93,7 @@ class _SplashScreenState extends State<SplashScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF081C15),
-              Color(0xFF1B4332),
-              Color(0xFF52B788),
-            ],
+            colors: [Color(0xFF081C15), Color(0xFF1B4332), Color(0xFF52B788)],
             stops: [0.08, 0.58, 0.92],
           ),
         ),
@@ -137,9 +133,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     child: PageView(
                       controller: _pageController,
                       onPageChanged: (i) => setState(() => _currentPage = i),
-                      children: [
-                        for (final page in _pages) _buildPage(page),
-                      ],
+                      children: [for (final page in _pages) _buildPage(page)],
                     ),
                   ),
 
@@ -164,7 +158,9 @@ class _SplashScreenState extends State<SplashScreen> {
                               onPressed: _getStarted,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
@@ -181,7 +177,11 @@ class _SplashScreenState extends State<SplashScreen> {
                                     ),
                                   ),
                                   SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward, color: Color(0xFF1B4332), size: 16),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    color: Color(0xFF1B4332),
+                                    size: 16,
+                                  ),
                                 ],
                               ),
                             ),
@@ -194,8 +194,12 @@ class _SplashScreenState extends State<SplashScreen> {
                                 curve: Curves.easeOut,
                               ),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                side: BorderSide(color: Colors.white.withValues(alpha: 0.45)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                side: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.45),
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
@@ -244,7 +248,10 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(28),
-                child: Image.asset('assets/images/f2t_logo.png', fit: BoxFit.cover),
+                child: Image.asset(
+                  'assets/images/f2t_logo.png',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(height: 28),

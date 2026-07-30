@@ -19,7 +19,8 @@ class AuthService {
   static const _kName = "auth_name";
   static const _kEmail = "auth_email";
   static const _kCreatedAt = "auth_created_at";
-  static Future<String> get _kDietPreferences => UserScope.key("auth_diet_preferences");
+  static Future<String> get _kDietPreferences =>
+      UserScope.key("auth_diet_preferences");
   static Future<String> get _kAllergies => UserScope.key("auth_allergies");
 
   static Future<void> cacheIdentity({

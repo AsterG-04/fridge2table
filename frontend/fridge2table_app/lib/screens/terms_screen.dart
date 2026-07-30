@@ -93,7 +93,10 @@ class TermsScreen extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         color: AppColors.darkGreen,
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28)),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
       ),
       padding: const EdgeInsets.fromLTRB(12, 48, 12, 16),
       child: Row(
@@ -103,15 +106,27 @@ class TermsScreen extends StatelessWidget {
             child: Container(
               width: 36,
               height: 36,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.chevron_left,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
           const Expanded(
             child: Text(
               "Terms of Service",
               textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: "Outfit", fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white),
+              style: TextStyle(
+                fontFamily: "Outfit",
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                color: Colors.white,
+              ),
             ),
           ),
           const SizedBox(width: 36),
@@ -124,18 +139,29 @@ class TermsScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             body,
-            style: const TextStyle(color: AppColors.textGray, fontSize: 13, height: 1.5),
+            style: const TextStyle(
+              color: AppColors.textGray,
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
         ],
       ),

@@ -67,8 +67,7 @@ class _AiDetectionScreenState extends State<AiDetectionScreen> {
         children: [
           _buildHeader(),
           Expanded(child: _buildBody()),
-          if (_results != null)
-            SafeArea(top: false, child: _buildBottomBar()),
+          if (_results != null) SafeArea(top: false, child: _buildBottomBar()),
         ],
       ),
     );
@@ -139,7 +138,11 @@ class _AiDetectionScreenState extends State<AiDetectionScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.auto_awesome, size: 16, color: AppColors.darkGreen),
+                  const Icon(
+                    Icons.auto_awesome,
+                    size: 16,
+                    color: AppColors.darkGreen,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -185,7 +188,9 @@ class _AiDetectionScreenState extends State<AiDetectionScreen> {
     final displayName = label.isEmpty
         ? label
         : label[0].toUpperCase() + label.substring(1);
-    final confidencePct = (result.confidence * 100).clamp(0, 100).toStringAsFixed(0);
+    final confidencePct = (result.confidence * 100)
+        .clamp(0, 100)
+        .toStringAsFixed(0);
 
     return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
@@ -242,8 +247,9 @@ class _AiDetectionScreenState extends State<AiDetectionScreen> {
 
   Widget _buildBottomBar() {
     final results = _results;
-    final selectedLabel =
-        results != null && results.isNotEmpty ? results[_selectedIndex].label : null;
+    final selectedLabel = results != null && results.isNotEmpty
+        ? results[_selectedIndex].label
+        : null;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -258,12 +264,17 @@ class _AiDetectionScreenState extends State<AiDetectionScreen> {
               onPressed: _rescan,
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: AppColors.darkGreen.withValues(alpha: 0.11)),
+                side: BorderSide(
+                  color: AppColors.darkGreen.withValues(alpha: 0.11),
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text("Rescan", style: TextStyle(color: AppColors.textGray)),
+              child: const Text(
+                "Rescan",
+                style: TextStyle(color: AppColors.textGray),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -281,7 +292,10 @@ class _AiDetectionScreenState extends State<AiDetectionScreen> {
               ),
               child: const Text(
                 "Add Ingredient",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

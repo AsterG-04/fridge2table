@@ -41,7 +41,9 @@ class RecipeCookingService {
   /// deducting anything yet — used by the "by measurement" flow to show
   /// the user what's about to be used and let them adjust the amount
   /// before anything is actually subtracted.
-  static Future<List<PlannedIngredientUsage>> planUsage(RecipeDetail recipe) async {
+  static Future<List<PlannedIngredientUsage>> planUsage(
+    RecipeDetail recipe,
+  ) async {
     List<Ingredient> inventory = [];
     try {
       inventory = await ApiService.getInventory();
@@ -93,7 +95,13 @@ class RecipeCookingService {
 
     for (final ing in recipe.ingredients) {
       if (skippedNames.contains(ing.name)) {
-        result.add(IngredientDeduction(name: ing.name, initials: ing.initials, skipped: true));
+        result.add(
+          IngredientDeduction(
+            name: ing.name,
+            initials: ing.initials,
+            skipped: true,
+          ),
+        );
         continue;
       }
 
@@ -101,11 +109,13 @@ class RecipeCookingService {
         (item) => item.name.toLowerCase() == ing.name.toLowerCase(),
       );
       if (matches.isEmpty) {
-        result.add(IngredientDeduction(
-          name: ing.name,
-          initials: ing.initials,
-          usedSymbolic: true,
-        ));
+        result.add(
+          IngredientDeduction(
+            name: ing.name,
+            initials: ing.initials,
+            usedSymbolic: true,
+          ),
+        );
         continue;
       }
 
@@ -137,14 +147,16 @@ class RecipeCookingService {
         }
       }
 
-      result.add(IngredientDeduction(
-        name: ing.name,
-        initials: ing.initials,
-        beforeLabel: "${_fmt(before)} ${item.unit}",
-        afterLabel: after <= 0 ? "Used up" : "${_fmt(after)} ${item.unit}",
-        amountUsed: before - after,
-        unit: item.unit,
-      ));
+      result.add(
+        IngredientDeduction(
+          name: ing.name,
+          initials: ing.initials,
+          beforeLabel: "${_fmt(before)} ${item.unit}",
+          afterLabel: after <= 0 ? "Used up" : "${_fmt(after)} ${item.unit}",
+          amountUsed: before - after,
+          unit: item.unit,
+        ),
+      );
     }
 
     return result;

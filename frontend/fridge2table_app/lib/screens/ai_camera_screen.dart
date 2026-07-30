@@ -74,9 +74,9 @@ class _AiCameraScreenState extends State<AiCameraScreen>
       _goToAddIngredient(file.path);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Capture failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Capture failed: $e")));
     } finally {
       if (mounted) setState(() => _isCapturing = false);
     }
@@ -240,7 +240,9 @@ class _AiCameraScreenState extends State<AiCameraScreen>
           _circleButton(
             icon: Icons.auto_awesome,
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("AI detection is always on while scanning")),
+              const SnackBar(
+                content: Text("AI detection is always on while scanning"),
+              ),
             ),
           ),
         ],
@@ -391,9 +393,15 @@ class _CornerBracket extends StatelessWidget {
         ),
         borderRadius: BorderRadius.only(
           topLeft: (isTop && isLeft) ? const Radius.circular(16) : Radius.zero,
-          topRight: (isTop && !isLeft) ? const Radius.circular(16) : Radius.zero,
-          bottomLeft: (!isTop && isLeft) ? const Radius.circular(16) : Radius.zero,
-          bottomRight: (!isTop && !isLeft) ? const Radius.circular(16) : Radius.zero,
+          topRight: (isTop && !isLeft)
+              ? const Radius.circular(16)
+              : Radius.zero,
+          bottomLeft: (!isTop && isLeft)
+              ? const Radius.circular(16)
+              : Radius.zero,
+          bottomRight: (!isTop && !isLeft)
+              ? const Radius.circular(16)
+              : Radius.zero,
         ),
       ),
     );

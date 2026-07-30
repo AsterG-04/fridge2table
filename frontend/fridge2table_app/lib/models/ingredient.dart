@@ -19,7 +19,6 @@ class Ingredient {
     this.updatedAt,
   });
 
-
   // Convert Flutter object → JSON
   // (sending data to FastAPI)
   Map<String, dynamic> toJson() {
@@ -32,7 +31,6 @@ class Ingredient {
       "location": location,
     };
   }
-
 
   // Convert JSON → Flutter object
   // (receiving data from FastAPI or Supabase)

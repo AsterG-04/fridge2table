@@ -63,10 +63,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case "today":
         return "Use today!";
       case "soon":
-        final expiry = expiryDate == null ? null : DateTime.tryParse(expiryDate);
+        final expiry = expiryDate == null
+            ? null
+            : DateTime.tryParse(expiryDate);
         if (expiry == null) return "Expiring soon";
         final daysLeft = DateTime(expiry.year, expiry.month, expiry.day)
-            .difference(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day))
+            .difference(
+              DateTime(
+                DateTime.now().year,
+                DateTime.now().month,
+                DateTime.now().day,
+              ),
+            )
             .inDays;
         return "Expiring in $daysLeft day${daysLeft == 1 ? '' : 's'}";
       default:
@@ -112,7 +120,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     color: Colors.white.withValues(alpha: 0.18),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.chevron_left,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
               const Expanded(
@@ -148,7 +160,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           emptyTitle: "No notifications — your pantry is all good! ✅",
           builder: (context, items) {
             final Map<String, List<Map<String, dynamic>>> grouped = {
-              for (final status in _groupOrder) status: []
+              for (final status in _groupOrder) status: [],
             };
 
             for (final item in items) {
@@ -187,12 +199,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               Container(
                 width: 10,
                 height: 10,
-                decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  shape: BoxShape.circle,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
                 "$label (${items.length})",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: badgeColor),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: badgeColor,
+                ),
               ),
             ],
           ),
@@ -221,11 +240,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(
+              color: badgeBg,
+              borderRadius: BorderRadius.circular(20),
+            ),
             alignment: Alignment.center,
             child: Text(
               _initials(name),
-              style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold, fontSize: 12),
+              style: TextStyle(
+                color: badgeColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -243,11 +269,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
                 const SizedBox(height: 2),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(999)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                   child: Text(
                     _badgeLabel(status, item["expiry_date"]),
-                    style: TextStyle(color: badgeColor, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],

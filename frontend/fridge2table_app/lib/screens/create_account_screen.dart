@@ -107,7 +107,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.mark_email_unread_outlined, color: AppColors.darkGreen, size: 32),
+        icon: const Icon(
+          Icons.mark_email_unread_outlined,
+          color: AppColors.darkGreen,
+          size: 32,
+        ),
         title: const Text("Check your email"),
         content: Text(
           "We've sent a confirmation link to $email. Open it, then come back "
@@ -121,9 +125,17 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               onPressed: () => Navigator.pop(dialogContext),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.darkGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text("Got it", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "Got it",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -140,7 +152,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       _showError("Cloud sign-in isn't configured yet");
       return;
     }
-    debugPrint("[GoogleAuth] Launching signInWithOAuth, redirectTo=${SupabaseConfig.oauthRedirect}");
+    debugPrint(
+      "[GoogleAuth] Launching signInWithOAuth, redirectTo=${SupabaseConfig.oauthRedirect}",
+    );
     try {
       final launched = await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
@@ -163,7 +177,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -213,9 +229,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         size: 18,
                         color: AppColors.textGray,
                       ),
-                      onPressed: () => setState(
-                        () => _obscurePassword = !_obscurePassword,
-                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
 
@@ -236,8 +251,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         color: AppColors.textGray,
                       ),
                       onPressed: () => setState(
-                        () => _obscureConfirmPassword =
-                            !_obscureConfirmPassword,
+                        () =>
+                            _obscureConfirmPassword = !_obscureConfirmPassword,
                       ),
                     ),
                   ),
@@ -260,12 +275,17 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: AppColors.darkGreen.withValues(alpha: 0.11),
+                              color: AppColors.darkGreen.withValues(
+                                alpha: 0.11,
+                              ),
                             ),
                           ),
                           child: _agreedToTerms
-                              ? const Icon(Icons.check,
-                                  size: 14, color: Colors.white)
+                              ? const Icon(
+                                  Icons.check,
+                                  size: 14,
+                                  color: Colors.white,
+                                )
                               : null,
                         ),
                       ),
@@ -288,9 +308,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                 ),
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (_) => const TermsScreen()),
-                                      ),
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const TermsScreen(),
+                                    ),
+                                  ),
                               ),
                               const TextSpan(text: " and "),
                               TextSpan(
@@ -301,9 +323,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                 ),
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (_) => const PrivacyScreen()),
-                                      ),
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const PrivacyScreen(),
+                                    ),
+                                  ),
                               ),
                             ],
                           ),
@@ -317,11 +341,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: (_agreedToTerms && !_submitting) ? _continue : null,
+                      onPressed: (_agreedToTerms && !_submitting)
+                          ? _continue
+                          : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.darkGreen,
-                        disabledBackgroundColor:
-                            AppColors.darkGreen.withValues(alpha: 0.5),
+                        disabledBackgroundColor: AppColors.darkGreen.withValues(
+                          alpha: 0.5,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -396,10 +423,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFFEA4335),
-                                  Color(0xFFFBBC04),
-                                ],
+                                colors: [Color(0xFFEA4335), Color(0xFFFBBC04)],
                               ),
                             ),
                             alignment: Alignment.center,

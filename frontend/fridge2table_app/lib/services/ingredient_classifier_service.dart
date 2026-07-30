@@ -61,11 +61,7 @@ class IngredientClassifierService {
         _inputSize,
         (y) => List.generate(_inputSize, (x) {
           final pixel = resized.getPixel(x, y);
-          return [
-            pixel.r.toDouble(),
-            pixel.g.toDouble(),
-            pixel.b.toDouble(),
-          ];
+          return [pixel.r.toDouble(), pixel.g.toDouble(), pixel.b.toDouble()];
         }),
       ),
     ];

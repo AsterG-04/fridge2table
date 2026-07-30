@@ -27,7 +27,8 @@ class UserScope {
     final prefs = await SharedPreferences.getInstance();
     var id = prefs.getString(_kInstallFallbackId);
     if (id == null) {
-      id = "${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}";
+      id =
+          "${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}";
       await prefs.setString(_kInstallFallbackId, id);
     }
     _cachedFallbackId = id;

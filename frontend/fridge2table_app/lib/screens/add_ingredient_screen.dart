@@ -20,13 +20,10 @@ class AddIngredientScreen extends StatefulWidget {
   bool get isEditing => existingIngredient != null;
 
   @override
-  State<AddIngredientScreen> createState() =>
-      _AddIngredientScreenState();
+  State<AddIngredientScreen> createState() => _AddIngredientScreenState();
 }
 
-class _AddIngredientScreenState
-    extends State<AddIngredientScreen> {
-
+class _AddIngredientScreenState extends State<AddIngredientScreen> {
   static const List<Map<String, String>> _unitOptions = [
     {"value": "pcs", "label": "Each / pcs"},
     {"value": "g", "label": "Grams (g)"},
@@ -58,11 +55,14 @@ class _AddIngredientScreenState
   ];
 
   late final _nameController = TextEditingController(
-      text: widget.existingIngredient?.name ?? widget.prefilledName ?? "");
+    text: widget.existingIngredient?.name ?? widget.prefilledName ?? "",
+  );
   late final _quantityController = TextEditingController(
-      text: widget.existingIngredient?.quantity.toString() ?? "");
+    text: widget.existingIngredient?.quantity.toString() ?? "",
+  );
   late final _expiryController = TextEditingController(
-      text: widget.existingIngredient?.expiryDate ?? "");
+    text: widget.existingIngredient?.expiryDate ?? "",
+  );
 
   late String? _selectedUnit = widget.existingIngredient?.unit;
   late String? _selectedCategory = widget.existingIngredient?.category;
@@ -113,8 +113,7 @@ class _AddIngredientScreenState
     final ingredient = Ingredient(
       id: widget.existingIngredient?.id,
       name: name,
-      quantity:
-          double.tryParse(_quantityController.text) ?? 0,
+      quantity: double.tryParse(_quantityController.text) ?? 0,
       unit: _selectedUnit ?? "",
       category: _selectedCategory,
       location: _selectedLocation,
@@ -130,14 +129,16 @@ class _AddIngredientScreenState
           ingredient,
         );
       } else {
-        await ApiService.addIngredient(
-          ingredient,
-        );
+        await ApiService.addIngredient(ingredient);
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Couldn't save: ${e.toString().replaceFirst('Exception: ', '')}")),
+        SnackBar(
+          content: Text(
+            "Couldn't save: ${e.toString().replaceFirst('Exception: ', '')}",
+          ),
+        ),
       );
       setState(() => _saving = false);
       return;
@@ -188,7 +189,11 @@ class _AddIngredientScreenState
                   const Text(
                     "Check Waste Control for tips on regrowing, scrap "
                     "recipes and composting.",
-                    style: TextStyle(color: AppColors.textGray, fontSize: 13, height: 1.4),
+                    style: TextStyle(
+                      color: AppColors.textGray,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -224,7 +229,6 @@ class _AddIngredientScreenState
   }
 
   Future<void> pickDate() async {
-
     final date = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -233,9 +237,7 @@ class _AddIngredientScreenState
     );
 
     if (date != null) {
-
-      _expiryController.text =
-          date.toIso8601String().split('T')[0];
+      _expiryController.text = date.toIso8601String().split('T')[0];
 
       setState(() {});
     }
@@ -302,8 +304,9 @@ class _AddIngredientScreenState
                           decoration: const InputDecoration(
                             labelText: "Ingredient Name",
                             border: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(12)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
                             ),
                           ),
                         ),
@@ -316,8 +319,9 @@ class _AddIngredientScreenState
                           decoration: const InputDecoration(
                             labelText: "Quantity",
                             border: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(12)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
                             ),
                           ),
                         ),
@@ -332,10 +336,12 @@ class _AddIngredientScreenState
                                 label: "Unit",
                                 value: _selectedUnit,
                                 items: _unitOptions
-                                    .map((u) => DropdownMenuItem(
-                                          value: u["value"],
-                                          child: Text(u["label"]!),
-                                        ))
+                                    .map(
+                                      (u) => DropdownMenuItem(
+                                        value: u["value"],
+                                        child: Text(u["label"]!),
+                                      ),
+                                    )
                                     .toList(),
                                 onChanged: (v) =>
                                     setState(() => _selectedUnit = v),
@@ -347,10 +353,12 @@ class _AddIngredientScreenState
                                 label: "Category",
                                 value: _selectedCategory,
                                 items: _categoryOptions
-                                    .map((c) => DropdownMenuItem(
-                                          value: c,
-                                          child: Text(c),
-                                        ))
+                                    .map(
+                                      (c) => DropdownMenuItem(
+                                        value: c,
+                                        child: Text(c),
+                                      ),
+                                    )
                                     .toList(),
                                 onChanged: (v) =>
                                     setState(() => _selectedCategory = v),
@@ -365,10 +373,10 @@ class _AddIngredientScreenState
                           label: "Storage Location",
                           value: _selectedLocation,
                           items: _locationOptions
-                              .map((l) => DropdownMenuItem(
-                                    value: l,
-                                    child: Text(l),
-                                  ))
+                              .map(
+                                (l) =>
+                                    DropdownMenuItem(value: l, child: Text(l)),
+                              )
                               .toList(),
                           onChanged: (v) =>
                               setState(() => _selectedLocation = v),
@@ -382,8 +390,9 @@ class _AddIngredientScreenState
                           decoration: InputDecoration(
                             labelText: "Expiry Date",
                             border: const OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(12)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
                             ),
                             suffixIcon: IconButton(
                               icon: const Icon(Icons.calendar_month),
@@ -405,7 +414,9 @@ class _AddIngredientScreenState
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             side: BorderSide(
-                              color: AppColors.darkGreen.withValues(alpha: 0.11),
+                              color: AppColors.darkGreen.withValues(
+                                alpha: 0.11,
+                              ),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -426,7 +437,8 @@ class _AddIngredientScreenState
                           onPressed: _saving ? null : saveIngredient,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.darkGreen,
-                            disabledBackgroundColor: AppColors.darkGreen.withValues(alpha: 0.5),
+                            disabledBackgroundColor: AppColors.darkGreen
+                                .withValues(alpha: 0.5),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -436,10 +448,15 @@ class _AddIngredientScreenState
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
                                 )
                               : Text(
-                                  widget.isEditing ? "Save Changes" : "Save Ingredient",
+                                  widget.isEditing
+                                      ? "Save Changes"
+                                      : "Save Ingredient",
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -480,7 +497,11 @@ class _AddIngredientScreenState
                 color: Colors.white.withValues(alpha: 0.18),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+              child: const Icon(
+                Icons.chevron_left,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
           Expanded(
@@ -504,7 +525,11 @@ class _AddIngredientScreenState
                 color: Colors.white.withValues(alpha: 0.18),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.help_outline, color: Colors.white, size: 18),
+              child: const Icon(
+                Icons.help_outline,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],

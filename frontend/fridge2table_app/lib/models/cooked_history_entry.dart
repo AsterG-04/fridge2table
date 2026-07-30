@@ -29,14 +29,14 @@ class CookedHistoryEntry {
   });
 
   Map<String, dynamic> toJson() => {
-        "name": name,
-        "time": time,
-        "calories": calories,
-        "timesCooked": timesCooked,
-        "lastCookedLabel": lastCookedLabel,
-        "deductionSummary": deductionSummary,
-        "ingredientNames": ingredientNames,
-      };
+    "name": name,
+    "time": time,
+    "calories": calories,
+    "timesCooked": timesCooked,
+    "lastCookedLabel": lastCookedLabel,
+    "deductionSummary": deductionSummary,
+    "ingredientNames": ingredientNames,
+  };
 
   factory CookedHistoryEntry.fromJson(Map<String, dynamic> json) {
     return CookedHistoryEntry(
@@ -46,13 +46,18 @@ class CookedHistoryEntry {
       timesCooked: json["timesCooked"] as int,
       lastCookedLabel: json["lastCookedLabel"] as String,
       deductionSummary: json["deductionSummary"] as String,
-      ingredientNames: (json["ingredientNames"] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      ingredientNames:
+          (json["ingredientNames"] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
     );
   }
 }
 
 class CookedHistoryStore {
-  static Future<String> get _prefsKey => UserScope.key("cooked_history_entries");
+  static Future<String> get _prefsKey =>
+      UserScope.key("cooked_history_entries");
 
   static List<CookedHistoryEntry>? _entries;
 
@@ -62,7 +67,9 @@ class CookedHistoryStore {
   static Future<List<CookedHistoryEntry>> load() async {
     final loaded = _entries;
     if (loaded != null) {
-      debugPrint("[CookedHistoryStore] load(): returning cached in-memory list (${loaded.length} entries)");
+      debugPrint(
+        "[CookedHistoryStore] load(): returning cached in-memory list (${loaded.length} entries)",
+      );
       return loaded;
     }
 
@@ -73,10 +80,16 @@ class CookedHistoryStore {
     _entries = raw == null
         ? []
         : raw
-            .map((s) => CookedHistoryEntry.fromJson(jsonDecode(s) as Map<String, dynamic>))
-            .toList();
+              .map(
+                (s) => CookedHistoryEntry.fromJson(
+                  jsonDecode(s) as Map<String, dynamic>,
+                ),
+              )
+              .toList();
 
-    debugPrint("[CookedHistoryStore] load(): read from disk under key=\"$key\" -> ${_entries!.length} entries");
+    debugPrint(
+      "[CookedHistoryStore] load(): read from disk under key=\"$key\" -> ${_entries!.length} entries",
+    );
     return _entries!;
   }
 
@@ -95,7 +108,9 @@ class CookedHistoryStore {
       key,
       entries.map((e) => jsonEncode(e.toJson())).toList(),
     );
-    debugPrint("[CookedHistoryStore] _persist(): wrote ${entries.length} entries under key=\"$key\" -> success=$ok");
+    debugPrint(
+      "[CookedHistoryStore] _persist(): wrote ${entries.length} entries under key=\"$key\" -> success=$ok",
+    );
   }
 
   static Future<void> recordCook({
@@ -111,8 +126,18 @@ class CookedHistoryStore {
     final index = entries.indexWhere((e) => e.name == name);
     final today = DateTime.now();
     const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
     final label = "${today.day} ${months[today.month - 1]}";
 
@@ -129,7 +154,9 @@ class CookedHistoryStore {
           ingredientNames: ingredientNames,
         ),
       );
-      debugPrint("[CookedHistoryStore] recordCook(): inserted new entry for \"$name\" (timesCooked=1)");
+      debugPrint(
+        "[CookedHistoryStore] recordCook(): inserted new entry for \"$name\" (timesCooked=1)",
+      );
     } else {
       final existing = entries[index];
       entries[index] = CookedHistoryEntry(
@@ -139,7 +166,9 @@ class CookedHistoryStore {
         timesCooked: existing.timesCooked + 1,
         lastCookedLabel: label,
         deductionSummary: deductionSummary,
-        ingredientNames: existing.ingredientNames.isNotEmpty ? existing.ingredientNames : ingredientNames,
+        ingredientNames: existing.ingredientNames.isNotEmpty
+            ? existing.ingredientNames
+            : ingredientNames,
       );
       debugPrint(
         "[CookedHistoryStore] recordCook(): bumped existing entry for \"$name\" "
@@ -188,16 +217,55 @@ class CookedHistoryStore {
   // authoritative lookup.
   static const Map<String, List<String>> _categoryTerms = {
     "Vegetables": [
-      "tomato", "onion", "garlic", "carrot", "spinach", "broccoli", "lettuce",
-      "pepper", "mushroom", "potato", "cucumber", "cabbage", "corn",
+      "tomato",
+      "onion",
+      "garlic",
+      "carrot",
+      "spinach",
+      "broccoli",
+      "lettuce",
+      "pepper",
+      "mushroom",
+      "potato",
+      "cucumber",
+      "cabbage",
+      "corn",
     ],
     "Meat & Seafood": [
-      "chicken", "beef", "pork", "egg", "shrimp", "salmon", "tuna", "fish",
-      "turkey", "lamb", "bacon", "sausage", "tofu",
+      "chicken",
+      "beef",
+      "pork",
+      "egg",
+      "shrimp",
+      "salmon",
+      "tuna",
+      "fish",
+      "turkey",
+      "lamb",
+      "bacon",
+      "sausage",
+      "tofu",
     ],
-    "Dairy": ["milk", "cheese", "butter", "cream", "yogurt", "yoghurt", "parmesan", "mozzarella"],
+    "Dairy": [
+      "milk",
+      "cheese",
+      "butter",
+      "cream",
+      "yogurt",
+      "yoghurt",
+      "parmesan",
+      "mozzarella",
+    ],
     "Fruits": ["banana", "lemon", "apple", "berry", "orange", "lime", "mango"],
-    "Grains & Bread": ["rice", "pasta", "noodle", "bread", "flour", "tortilla", "oats"],
+    "Grains & Bread": [
+      "rice",
+      "pasta",
+      "noodle",
+      "bread",
+      "flour",
+      "tortilla",
+      "oats",
+    ],
   };
 
   static String? _categorize(String ingredientName) {

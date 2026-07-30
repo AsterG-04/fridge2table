@@ -30,7 +30,8 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => RecipeDetailScreen(recipe: RecipeDetail.forName(entry.name)),
+        builder: (_) =>
+            RecipeDetailScreen(recipe: RecipeDetail.forName(entry.name)),
       ),
     );
   }
@@ -40,7 +41,9 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
     if (!_loaded) {
       return const Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator(color: AppColors.darkGreen)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.darkGreen),
+        ),
       );
     }
 
@@ -61,14 +64,21 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
                   const SizedBox(height: 16),
                   const Text(
                     "All cooked recipes — tap to view or cook again",
-                    style: TextStyle(color: AppColors.textGray, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: AppColors.textGray,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   if (entries.isEmpty)
                     const Padding(
                       padding: EdgeInsets.only(top: 40),
                       child: Center(
-                        child: Text("No cooked recipes yet", style: TextStyle(color: AppColors.textGray)),
+                        child: Text(
+                          "No cooked recipes yet",
+                          style: TextStyle(color: AppColors.textGray),
+                        ),
                       ),
                     )
                   else
@@ -103,8 +113,15 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
             child: Container(
               width: 36,
               height: 36,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.chevron_left,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
           const Expanded(
@@ -129,14 +146,24 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Row(
         children: [
           Container(
             width: 56,
             height: 56,
-            decoration: BoxDecoration(color: AppColors.lightGreen, borderRadius: BorderRadius.circular(16)),
-            child: const Icon(Icons.restaurant_menu, color: AppColors.darkGreen, size: 26),
+            decoration: BoxDecoration(
+              color: AppColors.lightGreen,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.restaurant_menu,
+              color: AppColors.darkGreen,
+              size: 26,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -145,12 +172,24 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
               children: [
                 Text(
                   "${CookedHistoryStore.totalMealsCooked}",
-                  style: const TextStyle(fontFamily: "Outfit", fontWeight: FontWeight.w800, fontSize: 24, color: AppColors.textDark),
+                  style: const TextStyle(
+                    fontFamily: "Outfit",
+                    fontWeight: FontWeight.w800,
+                    fontSize: 24,
+                    color: AppColors.textDark,
+                  ),
                 ),
-                const Text("Total meals cooked", style: TextStyle(color: AppColors.textGray, fontSize: 12)),
+                const Text(
+                  "Total meals cooked",
+                  style: TextStyle(color: AppColors.textGray, fontSize: 12),
+                ),
                 Text(
                   "${CookedHistoryStore.uniqueRecipes} unique recipes",
-                  style: const TextStyle(color: AppColors.textGray, fontSize: 11, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: AppColors.textGray,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -160,9 +199,17 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
             children: [
               Text(
                 "${CookedHistoryStore.totalCalories}",
-                style: const TextStyle(fontFamily: "Outfit", fontWeight: FontWeight.w800, fontSize: 22, color: AppColors.textDark),
+                style: const TextStyle(
+                  fontFamily: "Outfit",
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                  color: AppColors.textDark,
+                ),
               ),
-              const Text("total calories", style: TextStyle(color: AppColors.textGray, fontSize: 11)),
+              const Text(
+                "total calories",
+                style: TextStyle(color: AppColors.textGray, fontSize: 11),
+              ),
             ],
           ),
         ],
@@ -175,7 +222,10 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
       onTap: () => _openRecipe(context, entry),
       child: Container(
         width: double.infinity,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
           children: [
             Padding(
@@ -186,17 +236,30 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
                   Container(
                     width: 28,
                     height: 28,
-                    decoration: BoxDecoration(color: AppColors.chipGreenBg, borderRadius: BorderRadius.circular(999)),
+                    decoration: BoxDecoration(
+                      color: AppColors.chipGreenBg,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
                     alignment: Alignment.center,
                     child: Text(
                       "Cooked ${entry.timesCooked}×",
-                      style: const TextStyle(color: AppColors.chipGreenText, fontSize: 9, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: AppColors.chipGreenText,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.visible,
                     ),
                   ),
                   const Spacer(),
-                  Text(entry.lastCookedLabel, style: const TextStyle(color: AppColors.textGray, fontSize: 11)),
+                  Text(
+                    entry.lastCookedLabel,
+                    style: const TextStyle(
+                      color: AppColors.textGray,
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -208,15 +271,38 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(entry.name, style: const TextStyle(color: AppColors.textDark, fontSize: 15, fontWeight: FontWeight.bold)),
+                        Text(
+                          entry.name,
+                          style: const TextStyle(
+                            color: AppColors.textDark,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.access_time, size: 10, color: AppColors.textGray),
+                            const Icon(
+                              Icons.access_time,
+                              size: 10,
+                              color: AppColors.textGray,
+                            ),
                             const SizedBox(width: 4),
-                            Text(entry.time, style: const TextStyle(color: AppColors.textGray, fontSize: 11)),
+                            Text(
+                              entry.time,
+                              style: const TextStyle(
+                                color: AppColors.textGray,
+                                fontSize: 11,
+                              ),
+                            ),
                             const SizedBox(width: 12),
-                            Text("${entry.calories} cal", style: const TextStyle(color: AppColors.textGray, fontSize: 11)),
+                            Text(
+                              "${entry.calories} cal",
+                              style: const TextStyle(
+                                color: AppColors.textGray,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -225,8 +311,15 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
                   Container(
                     width: 28,
                     height: 28,
-                    decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(999)),
-                    child: const Icon(Icons.restaurant, size: 14, color: AppColors.darkGreen),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Icon(
+                      Icons.restaurant,
+                      size: 14,
+                      color: AppColors.darkGreen,
+                    ),
                   ),
                 ],
               ),
@@ -236,14 +329,20 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
                 color: AppColors.background,
-                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       entry.deductionSummary,
-                      style: const TextStyle(color: AppColors.textGray, fontSize: 11),
+                      style: const TextStyle(
+                        color: AppColors.textGray,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                   GestureDetector(
@@ -251,9 +350,20 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
-                        Icon(Icons.replay, size: 12, color: AppColors.darkGreen),
+                        Icon(
+                          Icons.replay,
+                          size: 12,
+                          color: AppColors.darkGreen,
+                        ),
                         SizedBox(width: 4),
-                        Text("Cook Again", style: TextStyle(color: AppColors.darkGreen, fontSize: 11, fontWeight: FontWeight.bold)),
+                        Text(
+                          "Cook Again",
+                          style: TextStyle(
+                            color: AppColors.darkGreen,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                   ),

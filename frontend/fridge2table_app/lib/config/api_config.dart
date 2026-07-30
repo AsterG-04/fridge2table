@@ -35,7 +35,8 @@ class ApiConfig {
   /// this (e.g. the name "fridge2table-backend" was taken and Render
   /// appended a suffix) -- check the URL shown on the service's Render
   /// dashboard page after deploying.
-  static const String _productionUrl = "https://fridge2table-backend.onrender.com";
+  static const String _productionUrl =
+      "https://fridge2table-backend.onrender.com";
 
   static String? _resolved;
 
@@ -93,7 +94,9 @@ class ApiConfig {
     } catch (e) {
       // device_info_plus itself failed for some reason -- fall back to the
       // emulator address rather than leaving baseUrl unset.
-      debugPrint("[ApiConfig] Device detection failed ($e), defaulting to emulator address");
+      debugPrint(
+        "[ApiConfig] Device detection failed ($e), defaulting to emulator address",
+      );
       _resolved = "http://10.0.2.2:8000";
     }
   }

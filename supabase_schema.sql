@@ -35,3 +35,31 @@ select pg_notify('pgrst', 'reload schema');
 -- policy — the cloud-side equivalent of the local backend's "orphaned"
 -- rows. They still exist in the table and can be reassigned manually:
 --   update public.ingredients set user_id = '<uuid>' where user_id is null;
+
+
+-- ============================================================================
+-- pantry_items — closing a "table publicly accessible" Supabase security
+-- alert (2026-07-30).
+--
+-- pantry_items is the FastAPI backend's own table (backend/app/models.py),
+-- created by SQLAlchemy's Base.metadata.create_all() over the same
+-- Supabase Postgres instance the backend's DATABASE_URL (Session Pooler
+-- string) points at. It was never given RLS, unlike `ingredients` above --
+-- SQLAlchemy has no concept of Supabase's RLS conventions, it just creates
+-- a plain table. Because that table lives in the `public` schema of a
+-- Supabase project, Supabase's auto-generated PostgREST API exposes it to
+-- anyone with the project URL + anon key by default, completely bypassing
+-- the backend's own JWT auth (see backend/app/auth.py) -- PostgREST talks
+-- straight to Postgres and has no idea the FastAPI layer exists.
+--
+-- Fix: enable RLS with *no* policies. The backend connects via the Session
+-- Pooler as the `postgres` role, which owns this table and has BYPASSRLS
+-- in Supabase's role model -- enabling RLS does not affect it at all. It
+-- only affects PostgREST's `anon`/`authenticated` roles, which own
+-- nothing and don't bypass RLS -- with zero policies defined, those roles
+-- see and can write zero rows. Since nothing should ever access this
+-- table except the backend's own direct connection, "no policies" is the
+-- correct end state, not a placeholder to fill in later.
+alter table public.pantry_items enable row level security;
+
+select pg_notify('pgrst', 'reload schema');

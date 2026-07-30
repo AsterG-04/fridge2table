@@ -26,10 +26,17 @@ class ApiService {
   /// having happened.
   static String get _userId {
     if (!SupabaseConfig.isConfigured) {
+      debugPrint("[ApiService] _userId: SupabaseConfig.isConfigured is false");
       throw Exception("You must be signed in to access your pantry");
     }
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
+      debugPrint(
+        "[ApiService] _userId: currentUser is null "
+        "(currentSession=${Supabase.instance.client.auth.currentSession != null}) "
+        "-- this is a different failure than a 401 from the backend, it means "
+        "the local Supabase client has no signed-in user at all right now.",
+      );
       throw Exception("You must be signed in to access your pantry");
     }
     return user.id;
@@ -46,8 +53,45 @@ class ApiService {
   /// instead of trusting the user_id query param above, which is now
   /// vestigial from the backend's point of view but still sent for any
   /// logging/debugging that inspects the URL.
-  static Map<String, String> _headers({bool json = false}) {
-    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+  ///
+  /// Proactively refreshes an expired-but-still-present session before
+  /// building the header -- the SDK's own background auto-refresh timer
+  /// only runs while the app is alive, so a session whose access token
+  /// expired while the app was closed/backgrounded won't necessarily have
+  /// been refreshed yet by the time the first request goes out after
+  /// reopening.
+  static Future<Map<String, String>> _headers({bool json = false}) async {
+    var session = Supabase.instance.client.auth.currentSession;
+
+    if (session != null && session.isExpired) {
+      debugPrint(
+        "[ApiService] Access token expired (expiresAt=${session.expiresAt}), "
+        "refreshing session before this request...",
+      );
+      try {
+        final result = await Supabase.instance.client.auth.refreshSession();
+        session = result.session;
+        debugPrint(
+          session != null
+              ? "[ApiService] Session refresh succeeded, new "
+                    "expiresAt=${session.expiresAt}"
+              : "[ApiService] Session refresh returned no session",
+        );
+      } catch (e) {
+        debugPrint("[ApiService] Session refresh failed: $e");
+      }
+    }
+
+    final token = session?.accessToken;
+    debugPrint(
+      token == null
+          ? "[ApiService] No access token available -- request will go out "
+                "with no Authorization header"
+          : "[ApiService] Attaching Authorization header "
+                "(token prefix: ${token.substring(0, token.length < 16 ? token.length : 16)}..., "
+                "expiresAt=${session?.expiresAt}, isExpired=${session?.isExpired})",
+    );
+
     return {
       if (token != null) "Authorization": "Bearer $token",
       if (json) "Content-Type": "application/json",
@@ -93,7 +137,16 @@ class ApiService {
       );
     }
 
+    debugPrint(
+      "[ApiService] ${response.request?.method} ${response.request?.url} "
+      "-> ${response.statusCode}",
+    );
+
     if (response.statusCode == 401) {
+      debugPrint(
+        "[ApiService] 401 response body: "
+        "${response.body.substring(0, response.body.length < 300 ? response.body.length : 300)}",
+      );
       await _handleUnauthorized();
       throw Exception("Your session has expired. Please sign in again.");
     }
@@ -126,7 +179,7 @@ class ApiService {
   // GET inventory
   static Future<List<Ingredient>> getInventory() async {
     final response = await _send(
-      () => http.get(_uri("/inventory"), headers: _headers()),
+      () async => http.get(_uri("/inventory"), headers: await _headers()),
     );
 
     if (response.statusCode == 200) {
@@ -143,9 +196,9 @@ class ApiService {
   // POST ingredient
   static Future<void> addIngredient(Ingredient ingredient) async {
     final response = await _send(
-      () => http.post(
+      () async => http.post(
         _uri("/ingredient"),
-        headers: _headers(json: true),
+        headers: await _headers(json: true),
         body: jsonEncode(ingredient.toJson()),
       ),
     );
@@ -159,9 +212,9 @@ class ApiService {
 
   static Future<void> updateIngredient(int id, Ingredient ingredient) async {
     final response = await _send(
-      () => http.put(
+      () async => http.put(
         _uri("/ingredient/$id"),
-        headers: _headers(json: true),
+        headers: await _headers(json: true),
         body: jsonEncode(ingredient.toJson()),
       ),
     );
@@ -175,7 +228,8 @@ class ApiService {
 
   static Future<void> deleteIngredient(int id) async {
     final response = await _send(
-      () => http.delete(_uri("/ingredient/$id"), headers: _headers()),
+      () async =>
+          http.delete(_uri("/ingredient/$id"), headers: await _headers()),
     );
 
     if (response.statusCode != 200) {
@@ -197,7 +251,7 @@ class ApiService {
 
   static Future<List<String>> getRecipes() async {
     final response = await _send(
-      () => http.get(_uri("/recipes"), headers: _headers()),
+      () async => http.get(_uri("/recipes"), headers: await _headers()),
     );
 
     if (response.statusCode == 200) {
@@ -213,7 +267,7 @@ class ApiService {
 
   static Future<List<Map<String, dynamic>>> getRecipesDetailed() async {
     final response = await _send(
-      () => http.get(_uri("/recipes"), headers: _headers()),
+      () async => http.get(_uri("/recipes"), headers: await _headers()),
     );
 
     if (response.statusCode == 200) {
@@ -230,7 +284,8 @@ class ApiService {
 
   static Future<String?> getAiRecommendation() async {
     final response = await _send(
-      () => http.get(_uri("/ai-recommendation"), headers: _headers()),
+      () async =>
+          http.get(_uri("/ai-recommendation"), headers: await _headers()),
     );
 
     if (response.statusCode == 200) {
@@ -245,7 +300,7 @@ class ApiService {
 
   static Future<List<Map<String, dynamic>>> getExpiryStatus() async {
     final response = await _send(
-      () => http.get(_uri("/expiry-status"), headers: _headers()),
+      () async => http.get(_uri("/expiry-status"), headers: await _headers()),
     );
 
     if (response.statusCode == 200) {

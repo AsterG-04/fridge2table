@@ -45,7 +45,9 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
         ingredientNames: widget.recipe.ingredients.map((i) => i.name).toList(),
       );
     } catch (error, stackTrace) {
-      debugPrint("[RecipeCompleteScreen] recordCook failed: $error\n$stackTrace");
+      debugPrint(
+        "[RecipeCompleteScreen] recordCook failed: $error\n$stackTrace",
+      );
     }
   }
 
@@ -123,7 +125,12 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
                       children: [
                         _pantryUpdatedCard(),
                         const SizedBox(height: 16),
-                        _sustainabilityCard(foodSavedGrams, co2Saved, moneySaved, points),
+                        _sustainabilityCard(
+                          foodSavedGrams,
+                          co2Saved,
+                          moneySaved,
+                          points,
+                        ),
                         const SizedBox(height: 16),
                         _scrapTipCard(),
                       ],
@@ -149,8 +156,15 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
           Container(
             width: 96,
             height: 96,
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: const Icon(Icons.check, color: AppColors.darkGreen, size: 48),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check,
+              color: AppColors.darkGreen,
+              size: 48,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -185,7 +199,14 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
   Widget _heroStat(String label) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Text(label, style: const TextStyle(color: AppColors.darkGreen, fontSize: 12, fontWeight: FontWeight.w600)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.darkGreen,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 
@@ -193,7 +214,10 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -202,18 +226,42 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
               Container(
                 width: 28,
                 height: 28,
-                decoration: BoxDecoration(color: AppColors.lightGreen, borderRadius: BorderRadius.circular(999)),
-                child: const Icon(Icons.inventory_2_outlined, size: 14, color: AppColors.darkGreen),
+                decoration: BoxDecoration(
+                  color: AppColors.lightGreen,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Icon(
+                  Icons.inventory_2_outlined,
+                  size: 14,
+                  color: AppColors.darkGreen,
+                ),
               ),
               const SizedBox(width: 10),
-              const Text("Pantry Updated", style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold)),
+              const Text(
+                "Pantry Updated",
+                style: TextStyle(
+                  color: AppColors.textDark,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.chipGreenBg, borderRadius: BorderRadius.circular(999)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.chipGreenBg,
+                  borderRadius: BorderRadius.circular(999),
+                ),
                 child: Text(
                   "$_deductedCount deducted",
-                  style: const TextStyle(color: AppColors.chipGreenText, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: AppColors.chipGreenText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -226,12 +274,19 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
           const Divider(color: AppColors.borderGreen, height: 20),
           Row(
             children: [
-              const Icon(Icons.check_circle_outline, size: 14, color: AppColors.textGray),
+              const Icon(
+                Icons.check_circle_outline,
+                size: 14,
+                color: AppColors.textGray,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   "$_deductedCount ingredient${_deductedCount == 1 ? '' : 's'} deducted from your pantry",
-                  style: const TextStyle(color: AppColors.textGray, fontSize: 12),
+                  style: const TextStyle(
+                    color: AppColors.textGray,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -248,33 +303,79 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
         Container(
           width: 44,
           height: 44,
-          decoration: BoxDecoration(color: chipBg, borderRadius: BorderRadius.circular(20)),
+          decoration: BoxDecoration(
+            color: chipBg,
+            borderRadius: BorderRadius.circular(20),
+          ),
           alignment: Alignment.center,
-          child: Text(d.initials, style: TextStyle(color: chipText, fontWeight: FontWeight.bold, fontSize: 12)),
+          child: Text(
+            d.initials,
+            style: TextStyle(
+              color: chipText,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(d.name, style: const TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.w600)),
+          child: Text(
+            d.name,
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
         if (d.skipped || d.usedSymbolic)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(999)),
-            child: const Text("Used", style: TextStyle(color: AppColors.textGray, fontSize: 11, fontWeight: FontWeight.bold)),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              "Used",
+              style: TextStyle(
+                color: AppColors.textGray,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           )
         else
           Row(
             children: [
-              Text(d.beforeLabel ?? "", style: const TextStyle(color: AppColors.textGray, fontSize: 11)),
-              const Icon(Icons.arrow_forward, size: 11, color: AppColors.textGray),
-              Text(d.afterLabel ?? "", style: const TextStyle(color: AppColors.textDark, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(
+                d.beforeLabel ?? "",
+                style: const TextStyle(color: AppColors.textGray, fontSize: 11),
+              ),
+              const Icon(
+                Icons.arrow_forward,
+                size: 11,
+                color: AppColors.textGray,
+              ),
+              Text(
+                d.afterLabel ?? "",
+                style: const TextStyle(
+                  color: AppColors.textDark,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
       ],
     );
   }
 
-  Widget _sustainabilityCard(double foodSavedGrams, double co2Saved, double moneySaved, int points) {
+  Widget _sustainabilityCard(
+    double foodSavedGrams,
+    double co2Saved,
+    double moneySaved,
+    int points,
+  ) {
     final foodSavedLabel = foodSavedGrams >= 1000
         ? "${(foodSavedGrams / 1000).toStringAsFixed(1)} kg"
         : "${foodSavedGrams.round()} g";
@@ -282,35 +383,73 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.eco_outlined, size: 16, color: AppColors.darkGreen),
+              const Icon(
+                Icons.eco_outlined,
+                size: 16,
+                color: AppColors.darkGreen,
+              ),
               const SizedBox(width: 8),
-              const Text("Sustainability Impact", style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold)),
+              const Text(
+                "Sustainability Impact",
+                style: TextStyle(
+                  color: AppColors.textDark,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _impactStat(Icons.savings_outlined, foodSavedLabel, "Food Saved")),
-              Expanded(child: _impactStat(Icons.cloud_outlined, "${co2Saved.toStringAsFixed(2)} kg", "CO₂ Avoided")),
+              Expanded(
+                child: _impactStat(
+                  Icons.savings_outlined,
+                  foodSavedLabel,
+                  "Food Saved",
+                ),
+              ),
+              Expanded(
+                child: _impactStat(
+                  Icons.cloud_outlined,
+                  "${co2Saved.toStringAsFixed(2)} kg",
+                  "CO₂ Avoided",
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _impactStat(Icons.attach_money, "RM ${moneySaved.toStringAsFixed(2)}", "Money Saved")),
-              Expanded(child: _impactStat(Icons.star_outline, "+$points", "Points")),
+              Expanded(
+                child: _impactStat(
+                  Icons.attach_money,
+                  "RM ${moneySaved.toStringAsFixed(2)}",
+                  "Money Saved",
+                ),
+              ),
+              Expanded(
+                child: _impactStat(Icons.star_outline, "+$points", "Points"),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             "You cooked ${widget.recipe.name.toLowerCase()} before it expired — preventing food waste and earning reward points.",
-            style: const TextStyle(color: AppColors.textGray, fontSize: 12, height: 1.4),
+            style: const TextStyle(
+              color: AppColors.textGray,
+              fontSize: 12,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -322,9 +461,19 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
       children: [
         Icon(icon, size: 16, color: AppColors.darkGreen),
         const SizedBox(height: 6),
-        Text(value, style: const TextStyle(color: AppColors.textDark, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: AppColors.textDark,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(color: AppColors.textGray, fontSize: 11)),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textGray, fontSize: 11),
+        ),
       ],
     );
   }
@@ -333,21 +482,39 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lightbulb_outline, size: 18, color: Color(0xFFD68910)),
+          const Icon(
+            Icons.lightbulb_outline,
+            size: 18,
+            color: Color(0xFFD68910),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Scrap tip", style: TextStyle(color: AppColors.textDark, fontSize: 14, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Scrap tip",
+                  style: TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 const Text(
                   "Don't throw away vegetable scraps or eggshells — they're great for regrowing or composting. Check Waste Control for ideas.",
-                  style: TextStyle(color: AppColors.textGray, fontSize: 12, height: 1.4),
+                  style: TextStyle(
+                    color: AppColors.textGray,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -375,22 +542,41 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: AppColors.darkGreen.withValues(alpha: 0.11)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                side: BorderSide(
+                  color: AppColors.darkGreen.withValues(alpha: 0.11),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: const Text("View History", style: TextStyle(color: AppColors.darkGreen, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "View History",
+                style: TextStyle(
+                  color: AppColors.darkGreen,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton(
-              onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+              onPressed: () =>
+                  Navigator.popUntil(context, (route) => route.isFirst),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.darkGreen,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: const Text("Back to Home", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "Back to Home",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],

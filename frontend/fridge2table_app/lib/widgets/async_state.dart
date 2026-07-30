@@ -38,7 +38,11 @@ class AsyncStateBuilder<T> extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.textGray),
+              const Icon(
+                Icons.wifi_off_rounded,
+                size: 40,
+                color: AppColors.textGray,
+              ),
               const SizedBox(height: 12),
               const Text(
                 "Couldn't load data",
@@ -58,10 +62,15 @@ class AsyncStateBuilder<T> extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 16, color: Colors.white),
-                label: const Text("Retry", style: TextStyle(color: Colors.white)),
+                label: const Text(
+                  "Retry",
+                  style: TextStyle(color: Colors.white),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.darkGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -94,7 +103,10 @@ class AsyncStateBuilder<T> extends StatelessWidget {
                 Text(
                   emptySubtitle!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textGray, fontSize: 12),
+                  style: const TextStyle(
+                    color: AppColors.textGray,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ],
