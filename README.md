@@ -166,7 +166,7 @@ flutter run
 
 The backend is deployed to **Render** (free tier) with a **Supabase Postgres** database — not SQLite, because Render's free tier wipes the local filesystem on every idle-restart (every ~15 minutes of inactivity), which would otherwise mean losing all pantry data constantly.
 
-- Backend: `render.yaml` at the repo root defines the Render Blueprint (`rootDir: backend`, `DATABASE_URL`, `OPENROUTER_API_KEY`, and `SUPABASE_JWT_SECRET` set as Render env vars, `DATABASE_URL` pointed at Supabase's **Session Pooler** connection string). `SUPABASE_JWT_SECRET` is required for the API to accept any request — see [`docs/AUDIT_FIXES.md`](docs/AUDIT_FIXES.md) for exactly where to find it and how to add it.
+- Backend: `render.yaml` at the repo root defines the Render Blueprint (`rootDir: backend`, `DATABASE_URL` and `OPENROUTER_API_KEY` set as Render env vars, `DATABASE_URL` pointed at Supabase's **Session Pooler** connection string). Request-JWT verification (see below) needs no Render env var at all — it verifies against Supabase's public JWKS endpoint, not a shared secret.
 - Frontend: release builds (`flutter build apk --release`) automatically point at the deployed backend URL (`ApiConfig._productionUrl` in `lib/config/api_config.dart`) — no manual config needed. Local dev (`flutter run`) is unaffected and keeps using the emulator/USB/LAN-IP logic above.
 
 To build an installable release APK:
@@ -188,7 +188,7 @@ Current model: **v4**, 68 ingredient classes, **85.59% test accuracy**. Trained 
 
 ## API Endpoints
 
-All defined in `backend/app/routes/inventory.py`. Every request (except the health check) must carry a valid `Authorization: Bearer <supabase-jwt>` header — the backend verifies it against `SUPABASE_JWT_SECRET` and derives the user id from the token's `sub` claim (`backend/app/auth.py`); any `user_id` query parameter a client sends is ignored entirely. Requests without a valid token get `401`. See [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) for every endpoint's full request/response schema with worked examples, and [`docs/AUDIT_FIXES.md`](docs/AUDIT_FIXES.md) for how to set `SUPABASE_JWT_SECRET` on Render.
+All defined in `backend/app/routes/inventory.py`. Every request (except the health check) must carry a valid `Authorization: Bearer <supabase-jwt>` header — the backend verifies its ES256 signature against Supabase's public JWKS endpoint and derives the user id from the token's `sub` claim (`backend/app/auth.py`); any `user_id` query parameter a client sends is ignored entirely. Requests without a valid token get `401`. See [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) for every endpoint's full request/response schema with worked examples, and [`docs/AUDIT_FIXES.md`](docs/AUDIT_FIXES.md) for the JWT verification history.
 
 | Method | Path | Description |
 |---|---|---|
