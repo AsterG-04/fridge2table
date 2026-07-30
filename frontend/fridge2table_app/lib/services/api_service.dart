@@ -12,7 +12,26 @@ import '../models/ingredient.dart';
 import '../screens/signin_screen.dart';
 import 'auth_service.dart';
 import 'delete_tombstones.dart';
+import 'local_pantry_store.dart';
 import 'supabase_service.dart';
+
+/// Thrown by [ApiService._send] specifically for "couldn't reach the server
+/// at all" failures (timeout, or no route to host) as opposed to a real
+/// HTTP error response. Kept as its own type -- rather than the plain
+/// Exception these cases used to throw -- purely so the offline-aware
+/// wrappers below can tell "we're offline, fall back to the local cache"
+/// apart from "the server responded but rejected the request" without
+/// parsing message strings. toString() deliberately matches the format
+/// Dart's own Exception('...') produces, so any existing call site that
+/// strips a literal "Exception: " prefix off the message still works
+/// unchanged.
+class NetworkUnavailableException implements Exception {
+  final String message;
+  const NetworkUnavailableException(this.message);
+
+  @override
+  String toString() => "Exception: $message";
+}
 
 class ApiService {
   static String get baseUrl => ApiConfig.baseUrl;
@@ -111,7 +130,7 @@ class ApiService {
     try {
       response = await request().timeout(_timeout);
     } on TimeoutException {
-      throw Exception(
+      throw NetworkUnavailableException(
         ApiConfig.usingAdbReverse
             ? "The server didn't respond in time. Run `adb reverse tcp:8000 "
                   "tcp:8000` and make sure the backend is running, then try again."
@@ -126,7 +145,7 @@ class ApiService {
       // connection immediately rather than hanging. This is not the same
       // as "no internet" and telling the user to check their WiFi would be
       // actively misleading here.
-      throw Exception(
+      throw NetworkUnavailableException(
         ApiConfig.usingAdbReverse
             ? "Can't reach the app's server. Run this in a terminal, then "
                   "try again:\n\nadb reverse tcp:8000 tcp:8000\n\n"
@@ -176,8 +195,23 @@ class ApiService {
     );
   }
 
-  // GET inventory
+  // GET inventory -- offline-first: an unreachable backend falls back to
+  // whatever was last cached locally (plus anything added/edited since)
+  // instead of surfacing an error, since "no signal right now" shouldn't
+  // mean "can't see your own pantry".
   static Future<List<Ingredient>> getInventory() async {
+    try {
+      await _pushPendingChanges();
+      final serverItems = await _fetchInventoryFromServer();
+      await LocalPantryStore.cacheServerSnapshot(serverItems);
+      return LocalPantryStore.getVisibleInventory();
+    } on NetworkUnavailableException {
+      debugPrint("[ApiService] getInventory: offline, serving local cache");
+      return LocalPantryStore.getVisibleInventory();
+    }
+  }
+
+  static Future<List<Ingredient>> _fetchInventoryFromServer() async {
     final response = await _send(
       () async => http.get(_uri("/inventory"), headers: await _headers()),
     );
@@ -193,13 +227,48 @@ class ApiService {
     );
   }
 
-  // POST ingredient
+  // POST ingredient -- always written to the local mirror first (instant,
+  // works offline), then pushed to the server immediately if reachable. If
+  // the push fails purely because there's no connection, the row stays
+  // queued in LocalPantryStore and a later getInventory()/sync pass will
+  // finish sending it -- this call still returns normally either way, since
+  // from the caller's point of view the ingredient has been saved.
   static Future<void> addIngredient(Ingredient ingredient) async {
+    final queued = await LocalPantryStore.queueCreate(ingredient);
+    try {
+      final created = await _createIngredientOnServer(ingredient);
+      // queued.id is the negative -localId sentinel; markSynced wants the
+      // raw positive local_id.
+      await LocalPantryStore.markSynced(-queued.id!, newServerId: created.id);
+    } on NetworkUnavailableException {
+      debugPrint(
+        "[ApiService] addIngredient: offline, queued locally "
+        "(local id ${queued.id})",
+      );
+    }
+  }
+
+  static Future<Ingredient> _createIngredientOnServer(
+    Ingredient ingredient,
+  ) async {
+    // A create must never send an id -- in particular never the negative
+    // local-only sentinel a queued row carries -- since the backend treats
+    // any non-null id as "upsert this existing row" (see crud.py). Rebuilt
+    // here rather than trusting the caller's ingredient.id to be null.
+    final payload = Ingredient(
+      name: ingredient.name,
+      quantity: ingredient.quantity,
+      unit: ingredient.unit,
+      expiryDate: ingredient.expiryDate,
+      category: ingredient.category,
+      location: ingredient.location,
+    );
+
     final response = await _send(
       () async => http.post(
         _uri("/ingredient"),
         headers: await _headers(json: true),
-        body: jsonEncode(ingredient.toJson()),
+        body: jsonEncode(payload.toJson()),
       ),
     );
 
@@ -208,9 +277,33 @@ class ApiService {
         "Failed to add ingredient (server returned ${response.statusCode})",
       );
     }
+
+    return Ingredient.fromJson(jsonDecode(response.body));
   }
 
+  // PUT ingredient -- same local-first, push-if-reachable pattern as
+  // addIngredient. An id < 0 means this ingredient was created offline and
+  // has never reached the server at all yet; in that case there's nothing
+  // to PUT, the amended fields just sit in the still-pending local create
+  // until that syncs.
   static Future<void> updateIngredient(int id, Ingredient ingredient) async {
+    await LocalPantryStore.queueUpdate(id, ingredient);
+    if (id < 0) return;
+
+    try {
+      await _updateIngredientOnServer(id, ingredient);
+      await LocalPantryStore.markSyncedForUiId(id);
+    } on NetworkUnavailableException {
+      debugPrint(
+        "[ApiService] updateIngredient: offline, queued update for id $id",
+      );
+    }
+  }
+
+  static Future<void> _updateIngredientOnServer(
+    int id,
+    Ingredient ingredient,
+  ) async {
     final response = await _send(
       () async => http.put(
         _uri("/ingredient/$id"),
@@ -226,7 +319,24 @@ class ApiService {
     }
   }
 
+  // DELETE ingredient -- same local-first pattern. An id < 0 was never
+  // synced, so queueDelete has already removed it outright locally and
+  // there is nothing on the server to delete.
   static Future<void> deleteIngredient(int id) async {
+    await LocalPantryStore.queueDelete(id);
+    if (id < 0) return;
+
+    try {
+      await _deleteIngredientOnServer(id);
+      await LocalPantryStore.confirmDeleteForUiId(id);
+    } on NetworkUnavailableException {
+      debugPrint(
+        "[ApiService] deleteIngredient: offline, queued delete for id $id",
+      );
+    }
+  }
+
+  static Future<void> _deleteIngredientOnServer(int id) async {
     final response = await _send(
       () async =>
           http.delete(_uri("/ingredient/$id"), headers: await _headers()),
@@ -246,6 +356,66 @@ class ApiService {
     final mirrored = await SupabaseService.deleteIngredient(id);
     if (mirrored) {
       await DeleteTombstones.remove(id);
+    }
+  }
+
+  /// Pushes every locally-queued create/update/delete to the server, in
+  /// the order they were made. Used both opportunistically at the top of
+  /// [getInventory] and (via that same call) by MainScreen's
+  /// connectivity-change listener, which calls getInventory() the moment
+  /// the device comes back online. Stops at the first NetworkUnavailableException
+  /// -- if the connection just dropped again mid-pass, there's no point
+  /// attempting the rest -- but a failure for one specific row (e.g. it was
+  /// deleted server-side some other way) is logged and skipped so it
+  /// doesn't block the rows queued after it.
+  static Future<void> _pushPendingChanges() async {
+    final pending = await LocalPantryStore.getPendingRows();
+
+    for (final row in pending) {
+      final localId = row['local_id'] as int;
+      final action = row['pending_action'] as String?;
+
+      try {
+        switch (action) {
+          case 'create':
+            final created = await _createIngredientOnServer(
+              LocalPantryStore.ingredientFromRow(row),
+            );
+            await LocalPantryStore.markSynced(localId, newServerId: created.id);
+            break;
+
+          case 'update':
+            final serverId = row['server_id'] as int?;
+            if (serverId == null) break;
+            await _updateIngredientOnServer(
+              serverId,
+              LocalPantryStore.ingredientFromRow(row),
+            );
+            await LocalPantryStore.markSynced(localId);
+            break;
+
+          case 'delete':
+            final serverId = row['server_id'] as int?;
+            if (serverId == null) {
+              await LocalPantryStore.deleteLocalRow(localId);
+              break;
+            }
+            await _deleteIngredientOnServer(serverId);
+            await LocalPantryStore.deleteLocalRow(localId);
+            break;
+        }
+      } on NetworkUnavailableException {
+        debugPrint(
+          "[ApiService] _pushPendingChanges: went offline mid-sync, "
+          "stopping (local_id=$localId will retry next time)",
+        );
+        return;
+      } catch (e) {
+        debugPrint(
+          "[ApiService] _pushPendingChanges: failed to sync "
+          "local_id=$localId action=$action: $e -- leaving queued",
+        );
+      }
     }
   }
 

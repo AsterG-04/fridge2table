@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../models/cooked_history_entry.dart';
@@ -8,6 +9,7 @@ import '../services/api_service.dart';
 import '../services/app_settings_service.dart';
 import '../services/saved_recipes_store.dart';
 import '../widgets/async_state.dart';
+import '../widgets/offline_banner.dart';
 import 'recipe_detail_screen.dart';
 
 class RecipeScreen extends StatefulWidget {
@@ -49,7 +51,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
   @override
   void initState() {
     super.initState();
-    _recipes = ApiService.getRecipesDetailed();
+    _recipes = _loadRecipes();
     _searchController.addListener(() => setState(() {}));
     _loadStores();
     unawaited(_loadSettings());
@@ -128,8 +130,26 @@ class _RecipeScreenState extends State<RecipeScreen> {
 
   void _refresh() {
     setState(() {
-      _recipes = ApiService.getRecipesDetailed();
+      _recipes = _loadRecipes();
     });
+  }
+
+  /// Recipes and AI recommendations require the backend -- there's no local
+  /// recipe engine, and this deliberately does not pretend otherwise. A
+  /// connectivity check up front means a genuinely offline device gets a
+  /// clear "you need a connection" message immediately, rather than the
+  /// more generic timeout/socket-error wording ApiService produces when it
+  /// actually attempts and fails a request (still accurate, just phrased
+  /// for a dev debugging a misconfigured backend rather than an end user
+  /// who's simply lost signal).
+  Future<List<Map<String, dynamic>>> _loadRecipes() async {
+    final results = await Connectivity().checkConnectivity();
+    if (isOfflineResult(results)) {
+      throw Exception(
+        "Recipes need an internet connection. Reconnect and try again.",
+      );
+    }
+    return ApiService.getRecipesDetailed();
   }
 
   int _minutesOf(dynamic prepTime) {

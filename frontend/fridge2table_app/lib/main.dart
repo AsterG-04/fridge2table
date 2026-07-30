@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/api_config.dart';
 import 'config/supabase_config.dart';
 import 'constants/colors.dart';
+import 'services/api_service.dart';
 import 'services/app_settings_service.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
@@ -17,6 +19,7 @@ import 'screens/profile_screen.dart';
 import 'screens/ai_camera_screen.dart';
 import 'screens/signin_screen.dart';
 import 'screens/splash_screen.dart';
+import 'widgets/offline_banner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -331,6 +334,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
 
   Timer? _backgroundBackupTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool? _wasOffline;
 
   static const _backgroundBackupInterval = Duration(minutes: 15);
 
@@ -351,6 +356,36 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     // Backup on Mobile Data" toggles from the Backup & Restore screen.
     unawaited(SupabaseService.autoBackupIfAllowed());
     _startBackgroundBackupTimer();
+    _listenForReconnect();
+  }
+
+  /// Pushes any locally-queued offline pantry changes the moment the
+  /// connection comes back, rather than waiting for the user to happen to
+  /// pull-to-refresh the Pantry screen. getInventory() already does both
+  /// halves of a sync pass (push everything queued, then pull the fresh
+  /// server state back into the local cache) -- this just triggers that on
+  /// the offline->online transition specifically, ignoring every other
+  /// connectivity event so it doesn't refire on e.g. wifi-to-mobile handoffs
+  /// that were never actually offline in between.
+  void _listenForReconnect() {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      final offlineNow = isOfflineResult(results);
+      final wasOffline = _wasOffline;
+      _wasOffline = offlineNow;
+
+      if (wasOffline == true && !offlineNow) {
+        debugPrint("[MainScreen] Connectivity restored, syncing pantry...");
+        unawaited(_syncPantryAfterReconnect());
+      }
+    });
+  }
+
+  Future<void> _syncPantryAfterReconnect() async {
+    try {
+      await ApiService.getInventory();
+    } catch (e) {
+      debugPrint("[MainScreen] Reconnect sync failed: $e");
+    }
   }
 
   /// "Background Backup" (AppSettingsService) means periodic backups while
@@ -372,6 +407,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _backgroundBackupTimer?.cancel();
+    _connectivitySub?.cancel();
     super.dispose();
   }
 
@@ -396,7 +432,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const OfflineBanner(),
+            Expanded(child: _screens[_currentIndex]),
+          ],
+        ),
+      ),
 
       bottomNavigationBar: _buildBottomNav(),
     );

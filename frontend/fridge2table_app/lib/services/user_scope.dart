@@ -42,5 +42,11 @@ class UserScope {
     return _fallbackId;
   }
 
+  /// The same per-account (or per-install-fallback) id used to namespace
+  /// SharedPreferences keys via [key] -- exposed directly for storage
+  /// mechanisms that need to filter/scope rows by user themselves (e.g. a
+  /// local SQLite table) rather than folding it into a single string key.
+  static Future<String> get uid => _uid;
+
   static Future<String> key(String base) async => "${base}_${await _uid}";
 }
