@@ -4,12 +4,14 @@ from pydantic import BaseModel, field_validator
 
 
 class IngredientCreate(BaseModel):
+    id: int | None = None
     name: str
     quantity: float
     unit: str
     expiry_date: str | None = None
     category: str | None = None
     location: str | None = None
+    updated_at: datetime | None = None
 
 
 class IngredientResponse(IngredientCreate):

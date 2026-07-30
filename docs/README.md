@@ -15,6 +15,8 @@ Documentation for the Fridge2Table (F2T) Final Year Project. Start with **Projec
 | [PROJECT_FLOW.md](PROJECT_FLOW.md) | *(Pre-existing doc.)* A shorter, narrative walkthrough of the same flows covered in more depth by ARCHITECTURE.md — kept for its screen-navigation map. |
 | [UI.md](UI.md) | *(Pre-existing doc.)* Design tokens (colors, typography), the shared screen-header pattern, and the full 25-screen inventory. |
 
+The packaged app now uses the Fridge2Table logo as its launcher icon for Android and iOS builds, so the branded image appears in installed-app listings and on supported launchers after a release build is installed.
+
 Two related documents exist **outside this folder and outside git** (kept local-only, listed in the root `.gitignore`) — not linked here since they aren't part of the tracked repo:
 - `DISSERTATION_NOTES.md` (repo root) — plain extraction notes covering testing evidence, bug history, and evaluation-data status, written specifically for dissertation writing.
 - `z_ALL_DOC.md` (repo root) — the FYP's client/supervisor meeting records, ethics paperwork, and heuristic evaluation.

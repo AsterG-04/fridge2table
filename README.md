@@ -23,6 +23,8 @@ Final Year University Project (FYP), University of Sunderland, CET300. Timeline:
 2. Install it on an Android phone (`adb install app-release.apk`, or copy the file to the phone and tap it).
 3. Open the app, create an account or sign in. It talks straight to the deployed Render backend — **no USB, no dev machine, no local setup needed** after install.
 
+Packaged builds now use the Fridge2Table branding as the launcher icon, so the app shows the custom logo on the home screen and in installed-app listings after you build and install a release APK.
+
 ### If you're developing (backend + frontend together)
 ```powershell
 # Backend
