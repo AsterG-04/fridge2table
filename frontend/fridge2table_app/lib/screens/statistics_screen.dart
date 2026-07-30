@@ -236,7 +236,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     style: TextStyle(
                       color: AppColors.textDark,
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -247,7 +247,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     style: TextStyle(
                       color: AppColors.textDark,
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -304,7 +304,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: "Outfit",
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w600,
                 fontSize: 18,
                 color: Colors.white,
               ),
@@ -498,15 +498,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             style: TextStyle(
               color: AppColors.textDark,
               fontSize: 14,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
           Text(
             "Estimated from your cooking history",
-            style: TextStyle(
-              color: AppColors.textGray.withValues(alpha: 0.8),
-              fontSize: 11,
-            ),
+            style: TextStyle(color: AppColors.textGray, fontSize: 11),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -619,7 +616,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             style: TextStyle(
               color: AppColors.textDark,
               fontSize: 14,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 16),

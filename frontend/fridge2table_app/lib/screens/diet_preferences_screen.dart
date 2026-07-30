@@ -272,7 +272,7 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                     children: [
                       TextSpan(
                         text: "Important: ",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       TextSpan(
                         text:
@@ -417,7 +417,7 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                       Text(
                         name,
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           fontSize: 12,
                           color: AppColors.textDark,
                         ),
@@ -427,7 +427,7 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                         option["desc"]!,
                         style: const TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           color: AppColors.textGray,
                         ),
                       ),
@@ -508,7 +508,7 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                       Text(
                         name,
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           fontSize: 14,
                           color: AppColors.textDark,
                         ),
@@ -529,7 +529,7 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
                             style: TextStyle(
                               color: severityColor,
                               fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -647,7 +647,7 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
               style: TextStyle(
                 color: AppColors.textGray,
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),

@@ -47,7 +47,7 @@ class AsyncStateBuilder<T> extends StatelessWidget {
               const Text(
                 "Couldn't load data",
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   fontSize: 15,
                   color: AppColors.textDark,
                 ),

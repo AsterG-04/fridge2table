@@ -130,7 +130,7 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: "Outfit",
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w600,
                 fontSize: 18,
                 color: Colors.white,
               ),
@@ -246,7 +246,7 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
                       style: const TextStyle(
                         color: AppColors.chipGreenText,
                         fontSize: 9,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.visible,
@@ -276,7 +276,7 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
                           style: const TextStyle(
                             color: AppColors.textDark,
                             fontSize: 15,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -361,7 +361,7 @@ class _CookedHistoryScreenState extends State<CookedHistoryScreen> {
                           style: TextStyle(
                             color: AppColors.darkGreen,
                             fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],

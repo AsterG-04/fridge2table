@@ -153,7 +153,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
                   "Exit",
                   style: TextStyle(
                     color: AppColors.textGray,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -162,7 +162,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
                 "Step ${_stepIndex + 1} of $totalSteps",
                 style: const TextStyle(
                   color: AppColors.textDark,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
               ),
@@ -211,7 +211,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
               style: TextStyle(
                 color: isActive ? Colors.white : AppColors.textGray,
                 fontSize: 12,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
               ),
             ),
     );
@@ -242,7 +242,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
                 "${_stepIndex + 1}",
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   fontSize: 16,
                 ),
               ),
@@ -254,7 +254,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
                 color: AppColors.textDark,
                 fontSize: 17,
                 height: 1.5,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w400,
               ),
             ),
             if (step.timerMinutes != null) ...[

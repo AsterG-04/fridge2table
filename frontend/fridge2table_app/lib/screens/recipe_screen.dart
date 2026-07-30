@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/colors.dart';
 import '../models/cooked_history_entry.dart';
 import '../models/recipe_detail.dart';
 import '../services/api_service.dart';
@@ -189,7 +190,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const Spacer(),
@@ -208,7 +209,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -302,11 +303,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
                   child: Text(
                     filter,
                     style: TextStyle(
-                      color: isSelected
-                          ? Colors.white
-                          : const Color(0xFF6B7280),
+                      color: isSelected ? Colors.white : AppColors.textGray,
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -360,7 +359,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                       style: TextStyle(
                         color: Colors.white70,
                         fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -371,7 +370,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 15,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -414,9 +413,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
                             : "No recipes found",
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: Color(0xFF6B7280),
+                          color: AppColors.textGray,
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       if (items.isNotEmpty) ...[
@@ -424,7 +423,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                         const Text(
                           "Try a different search or filter",
                           style: TextStyle(
-                            color: Color(0xFF6B7280),
+                            color: AppColors.textGray,
                             fontSize: 12,
                           ),
                         ),
@@ -480,7 +479,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
           style: TextStyle(
             color: Color(0xFF966200),
             fontSize: 12,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ),
@@ -541,7 +540,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -612,7 +611,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                         style: const TextStyle(
                           color: Color(0xFF1B4332),
                           fontSize: 10,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -668,7 +667,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                           'AI Recommended',
                           style: TextStyle(
                             fontSize: 9,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w500,
                             color: Color(0xFF1B4332),
                           ),
                         ),

@@ -455,7 +455,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   recipe.name,
                   style: const TextStyle(
                     fontFamily: "Outfit",
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
                     fontSize: 20,
                     color: AppColors.textDark,
                   ),
@@ -511,7 +511,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   style: const TextStyle(
                     color: AppColors.chipGreenText,
                     fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -562,7 +562,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               style: TextStyle(
                 color: AppColors.textDark,
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
                 height: 1.4,
               ),
             ),
@@ -594,7 +594,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               style: TextStyle(
                 color: AppColors.textDark,
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
                 height: 1.4,
               ),
             ),
@@ -633,7 +633,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   style: TextStyle(
                     color: Color(0xFFC0392B),
                     fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -679,7 +679,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   style: TextStyle(
                     color: Color(0xFFD68910),
                     fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -722,7 +722,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   style: TextStyle(
                     color: AppColors.darkGreen,
                     fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -759,7 +759,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             style: const TextStyle(
               color: AppColors.textDark,
               fontSize: 14,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 12),
@@ -785,7 +785,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             ing.initials,
             style: TextStyle(
               color: chipText,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
               fontSize: 12,
             ),
           ),
@@ -818,7 +818,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               style: TextStyle(
                 color: Color(0xFFC0392B),
                 fontSize: 10,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
               ),
             ),
           )
@@ -878,7 +878,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 _saved ? "Saved" : "Save Recipe",
                 style: const TextStyle(
                   color: AppColors.darkGreen,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

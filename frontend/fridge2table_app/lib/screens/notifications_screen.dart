@@ -133,7 +133,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: "Outfit",
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
                     fontSize: 18,
                     color: Colors.white,
                   ),
@@ -209,7 +209,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 "$label (${items.length})",
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: badgeColor,
                 ),
               ),
@@ -249,7 +249,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               _initials(name),
               style: TextStyle(
                 color: badgeColor,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
                 fontSize: 12,
               ),
             ),
@@ -282,7 +282,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     style: TextStyle(
                       color: badgeColor,
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),

@@ -88,7 +88,7 @@ class _AiDetectionScreenState extends State<AiDetectionScreen> {
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -218,7 +218,7 @@ class _AiDetectionScreenState extends State<AiDetectionScreen> {
               style: TextStyle(
                 color: isSelected ? Colors.white : AppColors.textDark,
                 fontSize: 13,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(width: 6),
@@ -235,7 +235,7 @@ class _AiDetectionScreenState extends State<AiDetectionScreen> {
                 style: TextStyle(
                   color: isSelected ? Colors.white : AppColors.chipGreenText,
                   fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),

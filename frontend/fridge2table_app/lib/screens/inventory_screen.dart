@@ -293,7 +293,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: "Outfit",
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
                     fontSize: 18,
                     color: Colors.white,
                   ),
@@ -420,7 +420,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           style: TextStyle(
             color: isActive ? Colors.white : AppColors.textDark,
             fontSize: 12,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -454,7 +454,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               _initials(item.name),
               style: TextStyle(
                 color: chipText,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
                 fontSize: 12,
               ),
             ),
@@ -500,7 +500,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     style: TextStyle(
                       color: badge.$2,
                       fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),

@@ -110,7 +110,7 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
             "Before we update your pantry",
             style: TextStyle(
               fontFamily: "Outfit",
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w600,
               fontSize: 20,
               color: AppColors.textDark,
             ),
@@ -176,7 +176,7 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
                         style: const TextStyle(
                           color: AppColors.textDark,
                           fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -194,7 +194,7 @@ class _CookingConfirmScreenState extends State<CookingConfirmScreen> {
                           style: const TextStyle(
                             color: AppColors.chipGreenText,
                             fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),

@@ -123,7 +123,7 @@ class TermsScreen extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: "Outfit",
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w600,
                 fontSize: 18,
                 color: Colors.white,
               ),
@@ -151,7 +151,7 @@ class TermsScreen extends StatelessWidget {
             style: const TextStyle(
               color: AppColors.textDark,
               fontSize: 14,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),

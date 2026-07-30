@@ -229,7 +229,7 @@ class _ExpiryMonitorScreenState extends State<ExpiryMonitorScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: "Outfit",
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w600,
                 fontSize: 18,
                 color: Colors.white,
               ),
@@ -316,7 +316,7 @@ class _ExpiryMonitorScreenState extends State<ExpiryMonitorScreen> {
                 "$label (${items.length})",
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: color,
                 ),
               ),
@@ -383,7 +383,7 @@ class _ExpiryMonitorScreenState extends State<ExpiryMonitorScreen> {
               "Use $name before it expires!",
               style: const TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textDark,
               ),
             ),
@@ -469,7 +469,7 @@ class _ExpiryMonitorScreenState extends State<ExpiryMonitorScreen> {
                     "$name has expired",
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textDark,
                     ),
                   ),
@@ -551,7 +551,7 @@ class _ExpiryMonitorScreenState extends State<ExpiryMonitorScreen> {
                 _initials(name),
                 style: TextStyle(
                   color: chipText,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                   fontSize: 12,
                 ),
               ),

@@ -432,7 +432,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 8,
-                                fontWeight: FontWeight.w900,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
@@ -475,7 +475,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                 text: "Sign In",
                                 style: TextStyle(
                                   color: AppColors.darkGreen,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
@@ -528,7 +528,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             "Create account",
             style: TextStyle(
               fontFamily: "Outfit",
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w600,
               fontSize: 24,
               color: Colors.white,
             ),
@@ -576,7 +576,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             style: const TextStyle(
               color: AppColors.textGray,
               fontSize: 10,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
               letterSpacing: 0.5,
             ),
           ),

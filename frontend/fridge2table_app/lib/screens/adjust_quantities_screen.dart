@@ -228,7 +228,7 @@ class _AdjustQuantitiesScreenState extends State<AdjustQuantitiesScreen> {
             "How much are you using?",
             style: TextStyle(
               fontFamily: "Outfit",
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w600,
               fontSize: 20,
               color: AppColors.textDark,
             ),
@@ -291,7 +291,7 @@ class _AdjustQuantitiesScreenState extends State<AdjustQuantitiesScreen> {
               p.initials,
               style: const TextStyle(
                 color: AppColors.chipGreenText,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
                 fontSize: 11,
               ),
             ),

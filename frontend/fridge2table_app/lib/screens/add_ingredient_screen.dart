@@ -181,7 +181,7 @@ class _AddIngredientScreenState extends State<AddIngredientScreen> {
                     "Don't throw away the scraps!",
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textDark,
                     ),
                   ),
@@ -426,7 +426,7 @@ class _AddIngredientScreenState extends State<AddIngredientScreen> {
                             "Cancel",
                             style: TextStyle(
                               color: AppColors.textGray,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -510,7 +510,7 @@ class _AddIngredientScreenState extends State<AddIngredientScreen> {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: "Outfit",
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w600,
                 fontSize: 18,
                 color: Colors.white,
               ),
@@ -557,7 +557,7 @@ class _AddIngredientScreenState extends State<AddIngredientScreen> {
               _previewInitials,
               style: TextStyle(
                 color: chipText,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
                 fontSize: 14,
               ),
             ),
@@ -592,7 +592,7 @@ class _AddIngredientScreenState extends State<AddIngredientScreen> {
             "AI detected",
             style: TextStyle(
               fontSize: 11,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
               color: AppColors.darkGreen,
             ),
           ),

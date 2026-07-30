@@ -208,7 +208,7 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: "Outfit",
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w600,
                 fontSize: 18,
                 color: Colors.white,
               ),
@@ -285,7 +285,7 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                           style: const TextStyle(
                             color: AppColors.textDark,
                             fontSize: 15,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -344,7 +344,7 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                     _backingUp ? "Backing up..." : "Back Up Now",
                     style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -424,7 +424,7 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                   style: const TextStyle(
                     color: AppColors.textDark,
                     fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
@@ -448,7 +448,7 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
               style: TextStyle(
                 color: tagText,
                 fontSize: 11,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -473,7 +473,7 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
             style: TextStyle(
               color: AppColors.textDark,
               fontSize: 14,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),

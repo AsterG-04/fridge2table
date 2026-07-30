@@ -171,7 +171,7 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
             "Meal Complete!",
             style: TextStyle(
               fontFamily: "Outfit",
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w600,
               fontSize: 22,
               color: AppColors.textDark,
             ),
@@ -242,7 +242,7 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
                 style: TextStyle(
                   color: AppColors.textDark,
                   fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const Spacer(),
@@ -260,7 +260,7 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
                   style: const TextStyle(
                     color: AppColors.chipGreenText,
                     fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -312,7 +312,7 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
             d.initials,
             style: TextStyle(
               color: chipText,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
               fontSize: 12,
             ),
           ),
@@ -340,7 +340,7 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
               style: TextStyle(
                 color: AppColors.textGray,
                 fontSize: 11,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
               ),
             ),
           )
@@ -361,7 +361,7 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
                 style: const TextStyle(
                   color: AppColors.textDark,
                   fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -403,7 +403,7 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
                 style: TextStyle(
                   color: AppColors.textDark,
                   fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -504,7 +504,7 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
                   style: TextStyle(
                     color: AppColors.textDark,
                     fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -553,7 +553,7 @@ class _RecipeCompleteScreenState extends State<RecipeCompleteScreen> {
                 "View History",
                 style: TextStyle(
                   color: AppColors.darkGreen,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

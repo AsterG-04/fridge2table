@@ -271,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _userName,
                     style: const TextStyle(
                       fontFamily: "Outfit",
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w600,
                       fontSize: 22,
                       color: Colors.white,
                     ),
@@ -336,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _userInitials,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                           fontSize: 14,
                         ),
                       ),
@@ -459,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   color: AppColors.darkGreen,
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -508,7 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     color: Color(0xFF966200),
                     fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -518,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: const TextStyle(
                     color: AppColors.textDark,
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
@@ -624,7 +624,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 color: textColor,
                 fontSize: 11,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -673,7 +673,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(
                       color: AppColors.textDark,
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
@@ -681,7 +681,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(
                       color: AppColors.textGray,
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],
@@ -707,7 +707,7 @@ class _HomeScreenState extends State<HomeScreen> {
           style: const TextStyle(
             color: AppColors.textDark,
             fontSize: 14,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
         GestureDetector(
@@ -717,7 +717,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(
               color: AppColors.darkGreen,
               fontSize: 12,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -749,7 +749,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       "Retry",
                       style: TextStyle(
                         color: AppColors.darkGreen,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -888,7 +888,7 @@ class _HomeScreenState extends State<HomeScreen> {
               initials,
               style: TextStyle(
                 color: chipText,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
                 fontSize: 12,
               ),
             ),
@@ -927,7 +927,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 color: tagText,
                 fontSize: 10,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -990,7 +990,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -1008,7 +1008,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: const TextStyle(
                   color: AppColors.darkGreen,
                   fontSize: 10,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
