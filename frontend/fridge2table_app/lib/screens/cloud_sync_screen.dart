@@ -18,7 +18,9 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
   bool _autoBackupOnMobileData = false;
   bool _backgroundBackupEnabled = true;
   bool _backingUp = false;
+  bool _restoring = false;
   DateTime? _lastBackupAt;
+  DateTime? _lastRestoreAt;
 
   int? _itemCount;
 
@@ -87,11 +89,39 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
     ).showSnackBar(SnackBar(content: Text(result.message)));
   }
 
+  Future<void> _restoreNow() async {
+    if (!SupabaseConfig.isConfigured) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Backup isn't configured yet")),
+      );
+      return;
+    }
+
+    setState(() => _restoring = true);
+    // Pull-only: cloud-only rows are created locally, existing local rows
+    // are updated only if the cloud version is newer -- never deletes or
+    // overwrites local data with something older, so this is safe to run
+    // without a confirmation dialog (unlike Clear Data).
+    final result = await SupabaseService.syncFromCloud();
+    await _loadItemCount();
+    if (!mounted) return;
+
+    setState(() {
+      _restoring = false;
+      if (result.success) _lastRestoreAt = DateTime.now();
+    });
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(result.message)));
+  }
+
   void _showHelp() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          "Back up your pantry data to the cloud so it's never lost.",
+          "Back Up saves your pantry to the cloud. Restore pulls it back down "
+          "-- useful after reinstalling or switching phones.",
         ),
       ),
     );
@@ -268,6 +298,14 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                         fontSize: 12,
                       ),
                     ),
+                    if (_lastRestoreAt != null)
+                      Text(
+                        "Last restore: ${_formatLastBackup(_lastRestoreAt)}",
+                        style: const TextStyle(
+                          color: AppColors.textGray,
+                          fontSize: 12,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -283,39 +321,67 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _backingUp ? null : _backUpNow,
-              icon: _backingUp
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.backup_outlined,
-                      size: 16,
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _backingUp ? null : _backUpNow,
+                  icon: _backingUp
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.backup_outlined,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                  label: Text(
+                    _backingUp ? "Backing up..." : "Back Up Now",
+                    style: const TextStyle(
                       color: Colors.white,
+                      fontWeight: FontWeight.w600,
                     ),
-              label: Text(
-                _backingUp ? "Backing up..." : "Back Up Now",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkGreen,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.darkGreen,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _restoring ? null : _restoreNow,
+                  icon: _restoring
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.restore, size: 16),
+                  label: Text(
+                    _restoring ? "Restoring..." : "Restore",
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.darkGreen,
+                    side: const BorderSide(color: AppColors.darkGreen),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
