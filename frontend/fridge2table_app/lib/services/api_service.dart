@@ -211,6 +211,13 @@ class ApiService {
     }
   }
 
+  /// Ids (matching [Ingredient.id] as returned by [getInventory]) of every
+  /// item still waiting on a create/update to reach the server -- lets the
+  /// Pantry screen show a "still syncing" indicator on individual cards
+  /// without needing to know anything about how the local cache works.
+  static Future<Set<int>> getPendingIngredientIds() =>
+      LocalPantryStore.getPendingUiIds();
+
   static Future<List<Ingredient>> _fetchInventoryFromServer() async {
     final response = await _send(
       () async => http.get(_uri("/inventory"), headers: await _headers()),
@@ -251,17 +258,34 @@ class ApiService {
   static Future<Ingredient> _createIngredientOnServer(
     Ingredient ingredient,
   ) async {
-    // A create must never send an id -- in particular never the negative
-    // local-only sentinel a queued row carries -- since the backend treats
-    // any non-null id as "upsert this existing row" (see crud.py). Rebuilt
-    // here rather than trusting the caller's ingredient.id to be null.
+    // The negative local-only sentinel a queued offline row carries must
+    // never be sent -- the backend treats any non-null id as "upsert this
+    // existing row" (see crud.py), and a negative id would either be
+    // rejected or (worse) collide with nothing meaningful.
+    //
+    // A genuine *positive* id, though, must be preserved rather than
+    // stripped. SupabaseService's restore/merge logic (syncFromCloud,
+    // resolveConflicts) calls addIngredient(cloudItem) for a cloud-only
+    // row specifically so the resulting local row gets the *same* id the
+    // cloud row already has -- that's what makes a repeated backup/restore
+    // idempotent (the backend upserts-by-id instead of inserting a fresh
+    // row every time). Unconditionally stripping the id here (as an
+    // earlier version of this method did) broke exactly that: every
+    // cloud-only row got a brand-new local id on every sync, so it could
+    // never be recognized as "already pulled in" and kept getting
+    // re-created -- the root cause of the backup/restore duplication bug.
+    final preservedId = (ingredient.id != null && ingredient.id! > 0)
+        ? ingredient.id
+        : null;
     final payload = Ingredient(
+      id: preservedId,
       name: ingredient.name,
       quantity: ingredient.quantity,
       unit: ingredient.unit,
       expiryDate: ingredient.expiryDate,
       category: ingredient.category,
       location: ingredient.location,
+      updatedAt: ingredient.updatedAt,
     );
 
     final response = await _send(

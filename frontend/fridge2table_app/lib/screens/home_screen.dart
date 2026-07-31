@@ -41,6 +41,12 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _expiringSoonItems = [];
   List<Map<String, dynamic>> _allMatchedRecipes = [];
 
+  // Tracked separately from _expiringSoonItems (which is "today"/"soon"
+  // only) so the AI Insight banner can tell "already gone off" apart from
+  // "still urgent but rescuable" -- an expired item isn't something a
+  // recipe suggestion rescues, it needs to be dealt with directly.
+  List<Map<String, dynamic>> _expiredItems = [];
+
   static const List<List<Color>> _recipeGradients = [
     [Color(0xFF7B341E), Color(0xFFC05621)],
     [Color(0xFF713F12), Color(0xFFC6862A)],
@@ -127,10 +133,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? 0
                   : (a["status"] == "today" ? -1 : 1),
             );
+      final expired = expiryStatus
+          .where((e) => e["status"] == "expired")
+          .toList();
       if (mounted) {
         setState(() {
           _expiringSoonCount = urgent.length;
           _expiringSoonItems = urgent;
+          _expiredItems = expired;
         });
       }
     } catch (_) {
@@ -138,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _expiringSoonCount = 0;
           _expiringSoonItems = [];
+          _expiredItems = [];
         });
       }
     }
@@ -281,11 +292,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Text(
                         "Good morning,",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.5),
-                    ),
-                  ),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
                       Text(
                         _userName,
                         style: const TextStyle(
@@ -457,6 +468,14 @@ class _HomeScreenState extends State<HomeScreen> {
       return const SizedBox.shrink();
     }
 
+    // Already-expired items take priority over "expiring soon" -- those
+    // are still rescuable with a recipe, but something already gone off
+    // needs to be dealt with directly (thrown out or logged in Waste
+    // Control), not suggested as a recipe ingredient.
+    if (_expiredItems.isNotEmpty) {
+      return _buildExpiredInsightBanner(context);
+    }
+
     final insight = _aiInsight;
 
     if (insight == null) {
@@ -565,12 +584,86 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildExpiredInsightBanner(BuildContext context) {
+    final count = _expiredItems.length;
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ExpiryMonitorScreen()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(17),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFDF2F0),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFC0392B).withValues(alpha: 0.25),
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: Color(0xFFC0392B),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.delete_sweep_outlined,
+                color: Colors.white,
+                size: 17,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "CLEAN UP",
+                    style: TextStyle(
+                      color: Color(0xFFC0392B),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    count == 1
+                        ? "You have an expired item — time to clean up or "
+                              "cook with what's left!"
+                        : "You have $count expired items — time to clean up "
+                              "or cook with what's left!",
+                    style: const TextStyle(
+                      color: AppColors.textDark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.textGray,
+              size: 16,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -924,7 +1017,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: const TextStyle(
                     color: AppColors.textDark,
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
@@ -1029,7 +1122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: const TextStyle(
                   color: AppColors.darkGreen,
                   fontSize: 10,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

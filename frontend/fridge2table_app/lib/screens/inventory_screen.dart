@@ -20,6 +20,7 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> {
   late Future<List<Ingredient>> inventory;
+  Set<int> _pendingIds = {};
 
   final _searchController = TextEditingController();
   bool _selectionMode = false;
@@ -48,13 +49,29 @@ class _InventoryScreenState extends State<InventoryScreen> {
   void initState() {
     super.initState();
     inventory = ApiService.getInventory();
+    unawaited(_loadPendingIds());
   }
 
   Future<void> _refresh() async {
     setState(() {
       inventory = ApiService.getInventory();
     });
+    unawaited(_loadPendingIds());
     unawaited(NotificationService.checkAndNotify());
+  }
+
+  /// Kept as separate state rather than folded into the Ingredient list
+  /// itself -- which items are still waiting to sync is a property of the
+  /// local cache, not of the ingredient data, and re-deriving it doesn't
+  /// require re-fetching the whole inventory. Note this only refreshes
+  /// alongside [inventory] (initState/_refresh); a sync that completes in
+  /// the background (see MainScreen's connectivity listener) while this
+  /// screen is already open won't clear a card's indicator until the next
+  /// pull-to-refresh or edit.
+  Future<void> _loadPendingIds() async {
+    final ids = await ApiService.getPendingIngredientIds();
+    if (!mounted) return;
+    setState(() => _pendingIds = ids);
   }
 
   List<Ingredient> _applyFilters(List<Ingredient> items) {
@@ -202,6 +219,35 @@ class _InventoryScreenState extends State<InventoryScreen> {
     });
   }
 
+  /// True only when every currently *visible* (search/filter-applied) item
+  /// is selected -- used purely to decide whether the toggle button should
+  /// read "Select All" or "Deselect All", not to drive selection itself.
+  bool _allVisibleSelected(List<Ingredient> visibleItems) {
+    return visibleItems.every(
+      (item) => item.id != null && _selectedIngredientIds.contains(item.id),
+    );
+  }
+
+  /// Selects every currently visible ingredient, or deselects them if
+  /// they're all already selected -- deliberately scoped to [visibleItems]
+  /// (whatever search/filter is active) rather than the whole pantry, so
+  /// "Select All" while filtered to e.g. "Dairy" only ever touches dairy
+  /// items. Items outside the current filter that were already selected
+  /// from an earlier filter are left untouched either way.
+  void _toggleSelectAll(List<Ingredient> visibleItems) {
+    final visibleIds = visibleItems
+        .map((item) => item.id)
+        .whereType<int>()
+        .toSet();
+    setState(() {
+      if (_allVisibleSelected(visibleItems)) {
+        _selectedIngredientIds.removeAll(visibleIds);
+      } else {
+        _selectedIngredientIds.addAll(visibleIds);
+      }
+    });
+  }
+
   Future<void> _deleteSelectedIngredients() async {
     if (_selectedIngredientIds.isEmpty) return;
 
@@ -277,13 +323,32 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           const SizedBox(height: 12),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Text(
-                              "${items.length} ingredient${items.length == 1 ? '' : 's'} in pantry",
-                              style: const TextStyle(
-                                color: AppColors.textGray,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "${items.length} ingredient${items.length == 1 ? '' : 's'} in pantry",
+                                  style: const TextStyle(
+                                    color: AppColors.textGray,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                                if (_selectionMode && items.isNotEmpty)
+                                  GestureDetector(
+                                    onTap: () => _toggleSelectAll(items),
+                                    child: Text(
+                                      _allVisibleSelected(items)
+                                          ? "Deselect All"
+                                          : "Select All",
+                                      style: const TextStyle(
+                                        color: AppColors.darkGreen,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -387,7 +452,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ),
               const SizedBox(width: 8),
               GestureDetector(
-                onTap: _selectionMode ? _deleteSelectedIngredients : _toggleSelectionMode,
+                onTap: _selectionMode
+                    ? _deleteSelectedIngredients
+                    : _toggleSelectionMode,
                 child: Container(
                   width: 36,
                   height: 36,
@@ -398,8 +465,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   child: Icon(
                     _selectionMode
                         ? (_selectedIngredientIds.isEmpty
-                            ? Icons.delete_outline
-                            : Icons.delete_outline)
+                              ? Icons.delete_outline
+                              : Icons.delete_outline)
                         : Icons.checklist_outlined,
                     color: Colors.white,
                     size: 16,
@@ -513,9 +580,34 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  /// Small amber "Syncing…" pill shown on a card while its offline
+  /// create/update hasn't reached the server yet -- so a user who just
+  /// added or edited something while offline can see it's queued rather
+  /// than wondering if it was lost. Disappears on its own the next time
+  /// [_loadPendingIds] runs and the item is no longer in the pending set.
+  Widget? _syncingPill(Ingredient item) {
+    if (item.id == null || !_pendingIds.contains(item.id)) return null;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Text(
+        "Syncing…",
+        style: TextStyle(
+          color: Color(0xFFB45309),
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
   Widget _buildItemCard(Ingredient item) {
     final (chipBg, chipText) = _catColors(item.category);
     final badge = _expiryBadge(item.expiryDate);
+    final syncingPill = _syncingPill(item);
     final quantityLabel = item.quantity == item.quantity.roundToDouble()
         ? item.quantity.toInt().toString()
         : item.quantity.toString();
@@ -547,16 +639,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: item.id != null && _selectedIngredientIds.contains(item.id)
+                      color:
+                          item.id != null &&
+                              _selectedIngredientIds.contains(item.id)
                           ? AppColors.darkGreen
                           : AppColors.borderGreen,
                       width: 1.5,
                     ),
-                    color: item.id != null && _selectedIngredientIds.contains(item.id)
+                    color:
+                        item.id != null &&
+                            _selectedIngredientIds.contains(item.id)
                         ? AppColors.darkGreen
                         : Colors.white,
                   ),
-                  child: item.id != null && _selectedIngredientIds.contains(item.id)
+                  child:
+                      item.id != null &&
+                          _selectedIngredientIds.contains(item.id)
                       ? const Icon(Icons.check, color: Colors.white, size: 14)
                       : null,
                 ),
@@ -588,7 +686,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     style: const TextStyle(
                       color: AppColors.textDark,
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
@@ -605,6 +703,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  if (syncingPill != null) ...[
+                    syncingPill,
+                    const SizedBox(height: 4),
+                  ],
                   if (badge != null) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -665,21 +767,34 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   ),
                 ],
               )
-            else if (badge != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: badge.$1,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  badge.$3,
-                  style: TextStyle(
-                    color: badge.$2,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+            else if (syncingPill != null || badge != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (syncingPill != null) ...[
+                    syncingPill,
+                    if (badge != null) const SizedBox(height: 4),
+                  ],
+                  if (badge != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badge.$1,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        badge.$3,
+                        style: TextStyle(
+                          color: badge.$2,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                ],
               ),
           ],
         ),

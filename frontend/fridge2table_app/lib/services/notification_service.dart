@@ -42,6 +42,7 @@ class NotificationService {
   /// permission). Called right before landing on MainScreen from every
   /// sign-in/sign-up completion path, not at raw app startup.
   static Future<void> requestPermission() async {
+    await initialize();
     final androidImpl = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -72,6 +73,11 @@ class NotificationService {
   static Future<void> checkAndNotify() async {
     try {
       if (!await AppSettingsService.getNotificationsEnabled()) return;
+      // Startup no longer blocks on this (see main.dart) -- ensure it's
+      // actually done before touching the plugin. Cheap/no-op if the
+      // fire-and-forget call from main() already finished, which in
+      // practice it almost always has by the time this runs.
+      await initialize();
 
       final items = await ApiService.getExpiryStatus();
       final history = await _loadHistory();

@@ -1,6 +1,8 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:flutter/foundation.dart';
+
 import '../config/supabase_config.dart';
 import '../models/ingredient.dart';
 import '../models/sync_result.dart';
@@ -135,6 +137,10 @@ class SupabaseService {
 
     try {
       final local = await ApiService.getInventory();
+      debugPrint(
+        "[SupabaseService.syncToCloud] local count before push: "
+        "${local.length} (ids: ${local.map((i) => i.id).toList()})",
+      );
 
       if (local.isEmpty) {
         return const SyncResult(
@@ -155,6 +161,15 @@ class SupabaseService {
             local.map((i) => i.toSupabaseJson(userId)).toList(),
             onConflict: "id,user_id",
           );
+
+      final cloudAfter = await _client
+          .from(SupabaseConfig.ingredientsTable)
+          .select()
+          .eq("user_id", userId);
+      debugPrint(
+        "[SupabaseService.syncToCloud] cloud row count after push: "
+        "${cloudAfter.length} (pushed ${local.length} local rows)",
+      );
 
       return SyncResult(
         success: true,
@@ -186,6 +201,11 @@ class SupabaseService {
       final cloud = cloudRows.map(Ingredient.fromJson).toList();
 
       final local = await ApiService.getInventory();
+      debugPrint(
+        "[SupabaseService.syncFromCloud] before: local=${local.length} "
+        "(ids: ${local.map((i) => i.id).toList()}), "
+        "cloud=${cloud.length} (ids: ${cloud.map((i) => i.id).toList()})",
+      );
       final localById = {
         for (final i in local)
           if (i.id != null) i.id!: i,
@@ -193,6 +213,8 @@ class SupabaseService {
       final tombstones = await DeleteTombstones.load();
 
       int applied = 0;
+      int created = 0;
+      int updated = 0;
       for (final cloudItem in cloud) {
         final localItem = cloudItem.id == null ? null : localById[cloudItem.id];
 
@@ -207,6 +229,7 @@ class SupabaseService {
           }
           await ApiService.addIngredient(cloudItem);
           applied++;
+          created++;
           continue;
         }
 
@@ -214,8 +237,16 @@ class SupabaseService {
             localItem.id != null) {
           await ApiService.updateIngredient(localItem.id!, cloudItem);
           applied++;
+          updated++;
         }
       }
+
+      final localAfter = await ApiService.getInventory();
+      debugPrint(
+        "[SupabaseService.syncFromCloud] after: local=${localAfter.length} "
+        "(created=$created, updated=$updated, applied=$applied) "
+        "(ids: ${localAfter.map((i) => i.id).toList()})",
+      );
 
       return SyncResult(
         success: true,
@@ -246,6 +277,11 @@ class SupabaseService {
           .select()
           .eq("user_id", userId);
       final cloud = cloudRows.map(Ingredient.fromJson).toList();
+      debugPrint(
+        "[SupabaseService.resolveConflicts] before: local=${local.length} "
+        "(ids: ${local.map((i) => i.id).toList()}), "
+        "cloud=${cloud.length} (ids: ${cloud.map((i) => i.id).toList()})",
+      );
 
       final localById = {
         for (final i in local)
@@ -258,6 +294,9 @@ class SupabaseService {
 
       final allIds = {...localById.keys, ...cloudById.keys};
       int changes = 0;
+      int createdLocally = 0;
+      int pushedToCloud = 0;
+      int updatedLocally = 0;
       final tombstones = await DeleteTombstones.load();
 
       for (final id in allIds) {
@@ -274,6 +313,7 @@ class SupabaseService {
           }
           await ApiService.addIngredient(cloudItem);
           changes++;
+          createdLocally++;
         } else if (cloudItem == null && localItem != null) {
           await _client
               .from(SupabaseConfig.ingredientsTable)
@@ -282,10 +322,12 @@ class SupabaseService {
                 onConflict: "id,user_id",
               );
           changes++;
+          pushedToCloud++;
         } else if (localItem != null && cloudItem != null) {
           if (_isNewer(cloudItem.updatedAt, localItem.updatedAt)) {
             await ApiService.updateIngredient(id, cloudItem);
             changes++;
+            updatedLocally++;
           } else if (_isNewer(localItem.updatedAt, cloudItem.updatedAt)) {
             await _client
                 .from(SupabaseConfig.ingredientsTable)
@@ -297,6 +339,14 @@ class SupabaseService {
           }
         }
       }
+
+      final localAfter = await ApiService.getInventory();
+      debugPrint(
+        "[SupabaseService.resolveConflicts] after: local=${localAfter.length} "
+        "(createdLocally=$createdLocally, updatedLocally=$updatedLocally, "
+        "pushedToCloud=$pushedToCloud, totalChanges=$changes) "
+        "(ids: ${localAfter.map((i) => i.id).toList()})",
+      );
 
       return SyncResult(
         success: true,

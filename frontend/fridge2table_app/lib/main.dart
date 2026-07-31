@@ -24,13 +24,23 @@ import 'widgets/offline_banner.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ApiConfig.initialize();
+  // Supabase must be ready before Fridge2TableApp.build() runs -- it
+  // synchronously checks Supabase.instance.client.auth.currentSession to
+  // decide whether to show MainScreen or SplashScreen -- so this is the
+  // one initialization step that genuinely can't move past runApp().
   await SupabaseService.initialize();
-  // Sets up the notification channel only -- does NOT request permission
-  // yet, since that's a user-facing prompt deliberately deferred until
-  // right after sign-in (see every navigation to MainScreen below).
-  await NotificationService.initialize();
 
   runApp(const Fridge2TableApp());
+
+  // Sets up the notification channel (not permission -- that's a separate,
+  // user-facing prompt deliberately deferred until right after sign-in).
+  // Deliberately NOT awaited before runApp(): nothing on the very first
+  // screen (Splash/SignIn) touches notifications, so there's no reason to
+  // make the user stare at a blank screen for an extra platform-channel
+  // round trip. NotificationService.checkAndNotify()/requestPermission()
+  // both await initialize() themselves before touching the plugin, so
+  // this is safe even if one of them runs before this finishes.
+  unawaited(NotificationService.initialize());
 }
 
 // Shared at the top level (rather than kept private to
@@ -317,7 +327,7 @@ class _Fridge2TableAppState extends State<Fridge2TableApp> {
       navigatorKey: rootNavigatorKey,
       debugShowCheckedModeBanner: false,
       title: "Fridge2Table",
-      theme: ThemeData(fontFamily: "DM Sans"),
+      theme: ThemeData(fontFamily: "Manrope"),
       home: hasPersistedSession ? const MainScreen() : const SplashScreen(),
     );
   }

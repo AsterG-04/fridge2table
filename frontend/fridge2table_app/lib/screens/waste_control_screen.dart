@@ -1301,7 +1301,7 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
                     style: const TextStyle(
                       color: AppColors.textDark,
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1465,7 +1465,7 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
                         style: const TextStyle(
                           color: AppColors.textDark,
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -1649,7 +1649,7 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
                         style: const TextStyle(
                           color: AppColors.textDark,
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -1852,7 +1852,7 @@ class _WasteControlScreenState extends State<WasteControlScreen> {
                     style: const TextStyle(
                       color: AppColors.textDark,
                       fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 2),

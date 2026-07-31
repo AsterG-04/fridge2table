@@ -511,7 +511,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   style: const TextStyle(
                     color: AppColors.chipGreenText,
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

@@ -249,6 +249,29 @@ class LocalPantryStore {
     );
   }
 
+  /// UI-facing ids (the same server_id-or--local_id values
+  /// [getVisibleInventory] hands out) for every row still waiting to sync
+  /// -- pending create or update. Pending deletes are deliberately excluded
+  /// since those rows are already hidden from the visible list, so there's
+  /// nothing to badge. Purely for driving a "still syncing" indicator on
+  /// the Pantry cards; says nothing about whether the device is currently
+  /// online.
+  static Future<Set<int>> getPendingUiIds() async {
+    final db = await _database;
+    final userId = await UserScope.uid;
+    final rows = await db.query(
+      'pantry_items',
+      columns: ['local_id', 'server_id'],
+      where: 'user_id = ? AND pending_action IN (?, ?)',
+      whereArgs: [userId, PendingAction.create.name, PendingAction.update.name],
+    );
+    return rows.map((row) {
+      final serverId = row['server_id'] as int?;
+      final localId = row['local_id'] as int;
+      return serverId ?? -localId;
+    }).toSet();
+  }
+
   /// Rebuilds the [Ingredient] a raw pending row (as returned by
   /// [getPendingRows]) represents -- exposed for the sync pass, which reads
   /// rows directly rather than through [getVisibleInventory].

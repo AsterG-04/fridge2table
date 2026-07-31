@@ -12,7 +12,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="fridge2table_app"
+        android:label="Fridge2Table"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

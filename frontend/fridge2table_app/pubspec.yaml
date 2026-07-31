@@ -49,7 +49,6 @@ dependencies:
   connectivity_plus: ^7.3.1
   sqflite: ^2.4.3
   path: ^1.9.1
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -80,9 +79,22 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
+  # The plain (non-adaptive) icon, used for iOS and as the Android legacy
+  # fallback -- both apply a square-ish mask (iOS's continuous rounded-rect
+  # corner, or none at all pre-Android-8), which the original full-bleed
+  # logo already fits safely.
   image_path: "assets/images/f2t_logo.png"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/f2t_logo.png"
+  # Android adaptive icons are masked to a *circle* on many launchers
+  # (this project's emulator included), which only guarantees the inner
+  # ~66% "safe zone" of the canvas stays visible. The original logo's
+  # content reaches ~80% of its canvas, so a circular mask was clipping it
+  # -- see tool/pad_adaptive_icon.dart, which generates this asset with
+  # the same logo shrunk to fit safely inside that zone, on a transparent
+  # canvas so adaptive_icon_background shows through the margin. The
+  # background color below is sampled from the logo's own card color so
+  # the padding is invisible rather than a visible seam.
+  adaptive_icon_background: "#FCF3E0"
+  adaptive_icon_foreground: "assets/images/f2t_logo_adaptive.png"
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -108,18 +120,18 @@ flutter_launcher_icons:
   #         weight: 700
   #
   fonts:
-    - family: DM Sans
+    - family: Manrope
       fonts:
-        - asset: assets/fonts/DMSans-Variable.ttf
+        - asset: assets/fonts/Manrope-Regular.ttf
           weight: 400
-        - asset: assets/fonts/DMSans-Variable.ttf
+        - asset: assets/fonts/Manrope-Medium.ttf
           weight: 500
-        - asset: assets/fonts/DMSans-Variable.ttf
+        - asset: assets/fonts/Manrope-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/DMSans-Variable.ttf
+        - asset: assets/fonts/Manrope-Bold.ttf
           weight: 700
-        - asset: assets/fonts/DMSans-Variable.ttf
-          weight: 900
+        - asset: assets/fonts/Manrope-ExtraBold.ttf
+          weight: 800
     - family: Outfit
       fonts:
         - asset: assets/fonts/Outfit-Variable.ttf

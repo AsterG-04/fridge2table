@@ -657,7 +657,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                         style: const TextStyle(
                           color: Color(0xFF1B4332),
                           fontSize: 10,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
