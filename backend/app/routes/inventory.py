@@ -249,10 +249,14 @@ def _matched_recipes(ingredient_names: list[str]):
             "matched_ingredients": list(matches),
         })
 
-    results.sort(
-        key=lambda x: x["match_score"],
-        reverse=True
-    )
+    # Secondary key (name, ascending) makes the ordering fully deterministic
+    # when multiple recipes tie on match_score -- without it, candidate_ids
+    # being a set meant which tied recipes landed in the top RECIPES_RETURNED
+    # could vary between runs (Python randomizes set/hash iteration order
+    # per process), so two identical requests -- or this same algorithm
+    # reimplemented offline in LocalRecipeMatcher, see the frontend -- could
+    # return a different arbitrary subset of equally-valid tied matches.
+    results.sort(key=lambda x: (-x["match_score"], x["name"]))
 
     return results
 

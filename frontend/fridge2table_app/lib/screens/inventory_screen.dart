@@ -278,17 +278,55 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (!mounted) return;
 
     final ids = _selectedIngredientIds.toList();
+    final count = ids.length;
+
+    // Each delete is a real await (local-first write, then a best-effort
+    // network call -- see ApiService.deleteIngredient) so a larger
+    // selection can take a visible moment; without this, the screen just
+    // sat there looking frozen/unresponsive until the whole loop finished.
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: AppColors.darkGreen,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text("Deleting $count item${count == 1 ? '' : 's'}..."),
+            ),
+          ],
+        ),
+      ),
+    );
+
     for (final id in ids) {
-      if (!mounted) return;
       await ApiService.deleteIngredient(id);
     }
 
     if (!mounted) return;
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).pop(); // dismiss the dialog above
+
     setState(() {
       _selectedIngredientIds.clear();
       _selectionMode = false;
     });
     _refresh();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("$count item${count == 1 ? '' : 's'} deleted")),
+    );
   }
 
   @override

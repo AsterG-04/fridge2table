@@ -45,10 +45,11 @@ All 13 planned development phases are reported complete. **Caveat worth knowing:
 
 ## Features
 
-- **Pantry inventory** — add/edit/delete ingredients manually or via AI camera scan, categorized, quantity-tracked, with a per-card expiry urgency badge (red "Expired" / orange "Today" / yellow "Soon")
+- **Pantry inventory** — add/edit/delete ingredients manually or via AI camera scan, categorized, quantity-tracked, with a per-card expiry urgency badge (red "Expired" / orange "Today" / yellow "Soon"); multi-select delete with "Select All" scoped to the current search/filter, a progress dialog while the bulk delete runs, and an automatic refresh + confirmation toast when it's done
+- **Offline mode** — the pantry (view/add/edit/delete) *and* recipe matching (including the AI-pick fallback) both work with no network at all: a local `sqflite` mirror + pending-write queue for the pantry, syncing automatically on reconnect; a Dart port of the backend's own matching algorithm run against a bundled recipe dataset for recipes, so offline results genuinely match what the backend would return, not a degraded approximation. An offline banner and a per-card "Syncing…" indicator make the state visible rather than silent. The one online-only piece left is the OpenRouter LLM re-rank itself (no local LLM) — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §7
 - **AI ingredient recognition** — on-device MobileNetV2 classifier (68 classes — see [AI Model](#ai-model) below), no photo ever leaves the device; top-3 candidates shown for the user to pick from
 - **Expiry monitoring** — items grouped by expired/today/soon/fresh, with a dedicated in-app Notifications screen and OS-level push notifications (one per ingredient per day, fired on Home load, inventory refresh, and app resume)
-- **Recipe matching** — 302 recipes matched against your pantry by shared ingredients (every pantry item, not just fresh ones), filtered to genuinely relevant matches with a relaxed threshold for small pantries, plus expired/expiring-ingredient warning banners, and an optional LLM-assisted "best pick" via OpenRouter
+- **Recipe matching** — 302 recipes matched against your pantry by shared ingredients (every pantry item, not just fresh ones), filtered to genuinely relevant matches with a relaxed threshold for small pantries, plus expired/expiring-ingredient warning banners, and an optional LLM-assisted "best pick" via OpenRouter (deterministic fallback offline or if no API key is set)
 - **Cooking flow** — Cook Now walks through recipe steps, then a unified quantity-adjustment screen (editable amounts + skip toggles, validated against real stock) deducts real quantities from the pantry and logs to cooked history
 - **Statistics** — real food-saved/CO₂/points figures computed from actual cooked history, not placeholder numbers
 - **Waste Control** — 4 tabs of hand-written guides: regrow-from-scraps, scrap recipes, composting methods, and storage tips
@@ -68,7 +69,8 @@ All 13 planned development phases are reported complete. **Caveat worth knowing:
 | AI recipe pick (optional) | OpenRouter (`meta-llama/llama-3.3-70b-instruct:free`) — app works fine without a key, falls back to the top match |
 | Camera | `camera` + `image_picker` packages |
 | Notifications | `flutter_local_notifications` — wired up: fires on Home load, inventory refresh, and app resume, capped at one per ingredient per day |
-| Connectivity detection | `connectivity_plus` — drives the WiFi/mobile-data-aware auto-backup toggles |
+| Connectivity detection | `connectivity_plus` — drives the WiFi/mobile-data-aware auto-backup toggles, the offline banner, and reconnect-triggered pantry sync |
+| Offline pantry cache | `sqflite` — `LocalPantryStore`, local mirror + pending-write queue behind `ApiService`, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) §7 |
 | Recipe matching | Pre-indexed lookup over a hand-authored 302-recipe dataset (`backend/data/recipes_full.json`) |
 | Backend hosting | Render (free tier) |
 | Design | Figma (`naaKMnLlp5usmlvppkaiMY`) |
@@ -103,20 +105,21 @@ fridge2table/
 │   │   └── routes/
 │   │       └── inventory.py     # All API endpoints
 │   ├── data/recipes_full.json   # Recipe dataset (source: scripts/generate_recipes.py)
-│   ├── scripts/                 # generate_recipes.py, migrate_add_user_id.py
+│   ├── scripts/                 # generate_recipes.py, migrate_add_user_id.py, backfill_step_timers.py
 │   └── venv/                    # Python virtual environment (not tracked)
 │
 ├── frontend/fridge2table_app/
+│   ├── tool/                    # pad_adaptive_icon.dart (regenerates the launcher icon's safe-zone-padded source)
 │   └── lib/
-│       ├── main.dart            # App root, auth listener, bottom-nav shell
+│       ├── main.dart            # App root, auth listener, bottom-nav shell, reconnect-sync listener
 │       ├── config/               # api_config.dart, supabase_config.dart
 │       ├── constants/            # colors.dart
 │       ├── data/                 # allergy_severities.dart
 │       ├── models/               # Ingredient, RecipeDetail, CookedHistoryEntry, etc.
-│       ├── screens/              # 25 screens — see docs/UI.md
-│       ├── services/             # api_service, auth_service, supabase_service,
-│       │                          # ingredient_classifier_service, recipe_cooking_service, etc.
-│       └── widgets/              # async_state.dart (shared loading/error/empty-state widget)
+│       ├── screens/              # screens — see docs/UI.md
+│       ├── services/             # api_service, auth_service, supabase_service, local_pantry_store,
+│       │                          # local_recipe_matcher, ingredient_classifier_service, recipe_cooking_service, etc.
+│       └── widgets/              # async_state.dart, offline_banner.dart
 │
 ├── ai_models/
 │   ├── scripts/                 # build_dataset_v*.py, train_v*.py, export_tflite.py
@@ -233,4 +236,19 @@ The recipe dataset is hand-authored (`backend/scripts/generate_recipes.py`), not
 The deployed backend sleeps after ~15 minutes of inactivity and takes about a minute to wake up on the next request — expected free-tier behavior, not a bug.
 
 **A few Settings toggles are still UI-only**
-Settings' "Expiry Alerts" / "Recipe Suggestions" toggles and the "Language: English" row remain local UI state with no backing behavior. Push Notifications, Dark Mode, Forgot Password, Help & Support, the Backup & Restore toggles, and the Cooking Mode timer are all real now — see [`docs/AUDIT_FIXES.md`](docs/AUDIT_FIXES.md) for what changed.
+Settings' "Expiry Alerts" toggle and the "Language: English" row remain local UI state with no backing behavior. Push Notifications, Recipe Suggestions, Dark Mode (shows "coming soon"), Forgot Password, Help & Support, the Backup & Restore toggles, and the Cooking Mode timer are all real now — see [`docs/AUDIT_FIXES.md`](docs/AUDIT_FIXES.md) for what changed.
+
+**Backup/Restore duplication bug (fixed)**
+Offline mode's rewrite of `ApiService.addIngredient()` briefly broke Backup & Restore's idempotency — every cloud-only row got a new id on every sync instead of reusing the one it already had, so repeated Backup/Restore taps kept duplicating the pantry (a real case went 15→36→51 items across one Backup then one Restore). Root-caused and fixed, confirmed stable across four consecutive real Backup/Restore taps with logged before/after row counts — see [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) §6.
+
+**Diet Preferences back-stack bug (fixed)**
+Found during an app-wide back-button audit (all 25 screens checked, this was the one real bug): finishing Diet Preferences always replaced itself with a fresh `MainScreen` regardless of context, which for onboarding left the sign-up screens still reachable via system back after a user was already signed in, and for editing from Profile stacked a *second* `MainScreen` instead of returning to the existing one. Fixed with a required `isOnboarding` flag; editing also gained a real back/cancel button it didn't have before. See [`docs/CODEBASE_GUIDE.md`](docs/CODEBASE_GUIDE.md)'s `diet_preferences_screen.dart` entry.
+
+**Offline recipe matching, cross-verified**
+`test/local_recipe_matcher_test.dart` (the first automated test in the repo) confirms the offline matcher returns byte-identical results to the backend's own algorithm — not just similar — for real test pantries, including expiry annotations. That comparison also caught and fixed a non-deterministic tie-break at the 25-result cutoff, present in the *original* backend algorithm too (now fixed on both sides).
+
+**App icon previously clipped on circular-mask launchers**
+Android adaptive icons are masked to a circle on many launchers, which only guarantees the inner ~66% of the icon canvas stays visible — the source logo's content reached ~80%, so it was genuinely getting clipped. Fixed via `tool/pad_adaptive_icon.dart` (regenerates a properly safe-zone-padded foreground layer) — see [`docs/UI.md`](docs/UI.md)'s "App Icon / Logo Safe Zone" section before changing the logo again.
+
+**Cooking timer had almost no data**
+The countdown UI was always correct; only 4/302 recipes had any `step_timers` data for it to show. `backend/scripts/backfill_step_timers.py` mines each recipe's own step text for explicit durations, taking coverage to 93/302.

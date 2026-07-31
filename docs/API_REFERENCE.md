@@ -139,7 +139,7 @@ Content-Type: application/json
 - A candidate passes only if `match_score >= 20` **and** `matched_count >= min_match_count`, where `min_match_count` is `1` if the pantry has fewer than 5 distinct ingredients, else `2`.
 - Results are sorted by `match_score` descending and capped at 25.
 
-**Response:** `200 OK`, an array of full recipe objects plus these extra fields:
+**Response:** `200 OK`, an array of full recipe objects (including the optional `step_timers` field — integer-or-null array, positional with `steps`, a per-step countdown duration in minutes; present for 93 of the 302 recipes, absent/all-null otherwise — see `backend/scripts/backfill_step_timers.py`) plus these extra fields:
 
 | Added field | Type | Description |
 |---|---|---|

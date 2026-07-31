@@ -5,7 +5,7 @@ Documentation for the Fridge2Table (F2T) Final Year Project. Start with **Projec
 | Doc | What's in it |
 |---|---|
 | [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) | Problem statement, full tech stack, phase-by-phase development history, every working feature, and an honest list of known limitations and intentional design decisions. Start here. |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System diagram and six detailed data-flow diagrams (auth, add ingredient, recipe matching, cooking, cloud sync, AI detection), plus a service-by-service reference for every class in `lib/services/`. |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System diagram and seven detailed data-flow diagrams (auth, add ingredient, recipe matching, cooking, cloud sync, **offline mode & local cache**, AI detection), plus a service-by-service reference for every class in `lib/services/`. |
 | [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | Every table (backend `pantry_items`, Supabase's separate `ingredients` sync table, `auth.users`) with full column/constraint listings and RLS policies, plus every local-storage key on the frontend and an ER diagram. |
 | [USE_CASES.md](USE_CASES.md) | A use case diagram and 19 full use case write-ups (actors, preconditions, main flow, alternate/exception flows, postconditions) — written for direct use in the FYP report's requirements/analysis chapters. |
 | [API_REFERENCE.md](API_REFERENCE.md) | Every backend endpoint: method, URL, params, request/response schema, worked examples, and the current Bearer-JWT auth model enforced by the backend. |

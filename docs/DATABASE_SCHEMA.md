@@ -69,9 +69,24 @@ Fully managed by Supabase itself — not defined anywhere in this project's own 
 
 Relevant fields (standard Supabase Auth schema): `id` (UUID, the value used as `user_id` everywhere else), `email`, `created_at`, `last_sign_in_at`, `app_metadata.provider` (`"email"` or `"google"`), `user_metadata.name` (set at sign-up).
 
-## 4. Frontend Local Storage (Not Relational)
+## 4. Frontend Local Storage
 
-Two different local storage mechanisms, chosen deliberately per sensitivity (see `secure_storage_service.dart`'s own top-of-file comment).
+Three local storage mechanisms: two simple key-value stores (chosen deliberately per sensitivity — see `secure_storage_service.dart`'s own top-of-file comment) and one genuinely relational local database, added for offline pantry support.
+
+### `sqflite` — the one relational local store: `LocalPantryStore`
+
+Table `pantry_items` (device-local, in a separate database file from anything Supabase/backend — not to be confused with the *backend's* Postgres/SQLite table of the same name), scoped per user via `UserScope.uid`. A local mirror + pending-write queue for offline pantry use — see `docs/ARCHITECTURE.md` §7 for the full reconciliation flow.
+
+| Column | Type | Notes |
+|---|---|---|
+| `local_id` | `INTEGER PRIMARY KEY AUTOINCREMENT` | This table's own id, stable from the moment a row is created, online or off |
+| `server_id` | `INTEGER`, nullable | The backend's `pantry_items.id`; null until a create actually reaches the server |
+| `user_id` | `TEXT NOT NULL` | `UserScope.uid` at the time the row was written |
+| `name`, `quantity`, `unit`, `expiry_date`, `category`, `location` | as `pantry_items` (backend) | Mirrors the same ingredient fields |
+| `updated_at` | `TEXT NOT NULL` | ISO8601 |
+| `pending_action` | `TEXT`, nullable: `'create'` / `'update'` / `'delete'` | Null means fully synced. A row holds only its *current net* pending state, not an operation log — two rapid offline edits to the same ingredient just overwrite this row's fields, giving "last edit wins" for free. |
+
+The app-facing `Ingredient.id` is `server_id` when known, or `-local_id` (negative) when a create hasn't reached the server yet — chosen so "is this synced" is a plain `id < 0` check, with no separate flag needing to be threaded through every call site.
 
 ### `flutter_secure_storage` — for genuinely sensitive data
 

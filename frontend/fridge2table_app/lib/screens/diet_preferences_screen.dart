@@ -6,7 +6,16 @@ import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 
 class DietPreferencesScreen extends StatefulWidget {
-  const DietPreferencesScreen({super.key});
+  /// Distinguishes the two contexts this screen is reused for: first-time
+  /// onboarding (pushed from CreateAccountScreen, no MainScreen on the
+  /// stack yet -- finishing should land on a fresh MainScreen with the
+  /// sign-up/sign-in screens cleared out from under it) vs. editing later
+  /// from Profile (MainScreen is already there, underneath -- finishing
+  /// should just pop back to it, not push another one on top). Required
+  /// rather than defaulted so a caller can't silently get this wrong.
+  final bool isOnboarding;
+
+  const DietPreferencesScreen({super.key, required this.isOnboarding});
 
   @override
   State<DietPreferencesScreen> createState() => _DietPreferencesScreenState();
@@ -193,10 +202,23 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
     await NotificationService.requestPermission();
 
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const MainScreen()),
-    );
+
+    if (widget.isOnboarding) {
+      // Clears SignInScreen/CreateAccountScreen out of the back stack --
+      // pushReplacement alone (the previous behavior) only replaced this
+      // screen, leaving the sign-up form still reachable via system back
+      // from a newly-registered, now-signed-in user's Home tab.
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainScreen()),
+        (route) => false,
+      );
+    } else {
+      // Editing from Profile: MainScreen is already on the stack
+      // underneath -- just pop back to it (and to ProfileScreen above
+      // that) rather than pushing a second MainScreen on top of both.
+      Navigator.pop(context, true);
+    }
   }
 
   @override
@@ -311,6 +333,31 @@ class _DietPreferencesScreenState extends State<DietPreferencesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Onboarding deliberately has no screen-exit back button here --
+          // it's a required one-time setup step, not something to back out
+          // of mid-flow (system back still works as an escape hatch,
+          // unchanged from before). Editing from Profile is different:
+          // the user should always be able to cancel without finishing
+          // both steps, matching every other pushed screen's back button.
+          if (!widget.isOnboarding) ...[
+            GestureDetector(
+              onTap: () => Navigator.maybePop(context),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.chevron_left,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Row(
             children: [
               Expanded(child: _progressBar(filled: true)),

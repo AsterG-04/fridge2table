@@ -154,11 +154,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _editPreferences() {
-    Navigator.push(
+  Future<void> _editPreferences() async {
+    final changed = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => const DietPreferencesScreen()),
+      MaterialPageRoute(
+        builder: (_) => const DietPreferencesScreen(isOnboarding: false),
+      ),
     );
+    if (changed == true && mounted) _loadProfile();
   }
 
   void _logOut() {

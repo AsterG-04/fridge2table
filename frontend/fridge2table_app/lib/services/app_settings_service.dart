@@ -8,7 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// up), not something tied to a specific account's pantry.
 class AppSettingsService {
   static const _kNotificationsEnabled = "settings_notifications_enabled";
-  static const _kRecipeSuggestionsEnabled = "settings_recipe_suggestions_enabled";
+  static const _kRecipeSuggestionsEnabled =
+      "settings_recipe_suggestions_enabled";
   static const _kAutoBackupOnWifi = "settings_auto_backup_wifi";
   static const _kAutoBackupOnMobileData = "settings_auto_backup_mobile_data";
   static const _kBackgroundBackupEnabled = "settings_background_backup";

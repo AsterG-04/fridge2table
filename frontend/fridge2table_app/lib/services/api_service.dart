@@ -13,6 +13,7 @@ import '../screens/signin_screen.dart';
 import 'auth_service.dart';
 import 'delete_tombstones.dart';
 import 'local_pantry_store.dart';
+import 'local_recipe_matcher.dart';
 import 'supabase_service.dart';
 
 /// Thrown by [ApiService._send] specifically for "couldn't reach the server
@@ -459,37 +460,59 @@ class ApiService {
     );
   }
 
+  // Recipe matching runs server-side when reachable (identical behavior to
+  // before offline mode existed); when it isn't, LocalRecipeMatcher runs
+  // the same scoring/threshold rules against LocalPantryStore's cached
+  // pantry, so results don't meaningfully change just because the device
+  // is offline. Only the OpenRouter LLM re-rank has no offline
+  // equivalent -- see LocalRecipeMatcher's own doc comment.
   static Future<List<Map<String, dynamic>>> getRecipesDetailed() async {
-    final response = await _send(
-      () async => http.get(_uri("/recipes"), headers: await _headers()),
-    );
+    try {
+      final response = await _send(
+        () async => http.get(_uri("/recipes"), headers: await _headers()),
+      );
 
-    if (response.statusCode == 200) {
-      List data = jsonDecode(response.body);
-      return data
-          .map<Map<String, dynamic>>((item) => Map<String, dynamic>.from(item))
-          .toList();
+      if (response.statusCode == 200) {
+        List data = jsonDecode(response.body);
+        return data
+            .map<Map<String, dynamic>>(
+              (item) => Map<String, dynamic>.from(item),
+            )
+            .toList();
+      }
+
+      throw Exception(
+        "Failed to load recipes (server returned ${response.statusCode})",
+      );
+    } on NetworkUnavailableException {
+      debugPrint("[ApiService] getRecipesDetailed: offline, matching locally");
+      final pantry = await LocalPantryStore.getVisibleInventory();
+      return LocalRecipeMatcher.getRecipesDetailed(pantry);
     }
-
-    throw Exception(
-      "Failed to load recipes (server returned ${response.statusCode})",
-    );
   }
 
   static Future<String?> getAiRecommendation() async {
-    final response = await _send(
-      () async =>
-          http.get(_uri("/ai-recommendation"), headers: await _headers()),
-    );
+    try {
+      final response = await _send(
+        () async =>
+            http.get(_uri("/ai-recommendation"), headers: await _headers()),
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      return data["recipe_name"] as String?;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return data["recipe_name"] as String?;
+      }
+
+      throw Exception(
+        "Failed to load AI recommendation (server returned ${response.statusCode})",
+      );
+    } on NetworkUnavailableException {
+      debugPrint(
+        "[ApiService] getAiRecommendation: offline, using local top match",
+      );
+      final pantry = await LocalPantryStore.getVisibleInventory();
+      return LocalRecipeMatcher.getAiRecommendationName(pantry);
     }
-
-    throw Exception(
-      "Failed to load AI recommendation (server returned ${response.statusCode})",
-    );
   }
 
   static Future<List<Map<String, dynamic>>> getExpiryStatus() async {

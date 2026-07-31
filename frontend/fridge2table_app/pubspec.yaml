@@ -75,6 +75,7 @@ flutter:
     - assets/models/ingredient_classifier_v4.tflite
     - assets/models/class_names_v4.json
     - assets/images/f2t_logo.png
+    - assets/data/recipes_full.json
 
 flutter_launcher_icons:
   android: true

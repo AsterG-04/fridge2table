@@ -33,10 +33,10 @@ Every screen talks to the local/deployed backend exclusively through `lib/servic
 ## Auth & Startup Flow
 
 ```
-main() → ApiConfig.initialize() → SupabaseService.initialize() → runApp()
-                                                                      │
-                     has a persisted Supabase session? ──────────────┤
-                            │ yes                                    │ no
+main() → ApiConfig.initialize() → SupabaseService.initialize() → runApp() → NotificationService.initialize()
+                                                                      │      (unawaited — fired after runApp(),
+                     has a persisted Supabase session? ──────────────┤       not before it; nothing on the
+                            │ yes                                    │ no    first screen needs it)
                             ▼                                        ▼
                        MainScreen                              SplashScreen (onboarding)
                                                                        │ Get Started
@@ -49,6 +49,8 @@ main() → ApiConfig.initialize() → SupabaseService.initialize() → runApp()
                                                                        ▼
                                                                   MainScreen
 ```
+
+Only `ApiConfig`/`SupabaseService` genuinely block the first frame — `Fridge2TableApp.build()` synchronously checks `Supabase.instance.client.auth.currentSession` to decide `MainScreen` vs. `SplashScreen`, so Supabase has to be ready by then. Notification-channel setup doesn't gate anything the user sees first, so it moved off that blocking chain (previously all three were sequentially `await`ed before `runApp()`, adding an extra platform-channel round trip to every cold start for no benefit).
 
 `main.dart`'s root-level `onAuthStateChange` listener is what catches sign-in completing *asynchronously* — Google OAuth (browser redirect lands later) and email-confirmation links (opened from the inbox, possibly after the app was backgrounded) both fire this way, regardless of which screen originally triggered them. It branches on the session's `provider`:
 
@@ -116,7 +118,7 @@ RecipeDetailScreen ── Cook Now ──► CookingModeScreen (step-by-step ins
 
 ## Recipe Matching
 
-On startup, `backend/app/routes/inventory.py` loads `backend/data/recipes_full.json` (121 hand-authored recipes, source: `backend/scripts/generate_recipes.py`) into memory and builds a keyword index over normalized ingredient names. `GET /recipes`:
+On startup, `backend/app/routes/inventory.py` loads `backend/data/recipes_full.json` (302 hand-authored recipes, source: `backend/scripts/generate_recipes.py`) into memory and builds a keyword index over normalized ingredient names. `GET /recipes`:
 
 1. Normalizes the user's pantry ingredient names (lowercase, de-pluralize, and map known spelling variants to one canonical form — e.g. `sweetpotato`→`sweet potato`, `capsicum`→`bell pepper` — since the AI classifier's class names don't always match the recipe dataset's spelling)
 2. Looks each one up in the pre-built index to get candidate recipe ids (exact-string matching, not fuzzy/substring — "pea" cannot match inside "peanut")
@@ -131,6 +133,10 @@ On startup, `backend/app/routes/inventory.py` loads `backend/data/recipes_full.j
 `GET /expiry-status` re-derives a `status` label per ingredient on every call by comparing `expiry_date` to today's date server-side — the status is not stored, just computed on read. `ExpiryMonitorScreen` groups the response by status and only renders non-empty groups. `NotificationService.checkAndNotify()` calls the same endpoint and fires one local notification per ingredient whose status is `expired`, `today`, or `soon`, using the ingredient's own database `id` as the Android notification id — calling it again **replaces** the existing notification rather than stacking a duplicate.
 
 Home screen's "AI Insight" banner uses the same expiry data: it picks the single most urgent expiring item, cross-references it against the currently-matched recipes to get a real rescue-recipe count, and shows nothing (not a stale placeholder) while that data is still loading.
+
+## Offline Mode
+
+The Pantry screen (view/add/edit/delete) and recipe matching (including the AI-pick fallback) both work with no network at all, sitting behind `ApiService`'s existing methods — no screen needed to change to gain either. Pantry: a local sqflite mirror (`LocalPantryStore`). Recipes: `LocalRecipeMatcher`, a Dart port of the backend's own matching algorithm run against a bundled copy of the recipe dataset, kept rule-for-rule identical so offline results genuinely match what the backend would return. An `OfflineBanner` shows above whichever tab is active whenever there's no connectivity at all; `RecipeScreen` additionally shows a small "showing matches from your last synced pantry" note; a `MainScreen`-level `connectivity_plus` listener pushes any queued offline pantry edits the moment the connection returns. The one thing still online-only is the OpenRouter LLM re-rank itself (falls back to the same deterministic top-match logic used when no API key is set — no local LLM to substitute). AI Camera scanning was already 100% on-device so needed no changes. Full mechanism: `docs/ARCHITECTURE.md` §7.
 
 ## Real-Device vs Emulator vs Release Build
 

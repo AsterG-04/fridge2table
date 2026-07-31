@@ -28,8 +28,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadNotificationsToggle() async {
-    final notificationsEnabled = await AppSettingsService.getNotificationsEnabled();
-    final recipeSuggestionsEnabled = await AppSettingsService.getRecipeSuggestionsEnabled();
+    final notificationsEnabled =
+        await AppSettingsService.getNotificationsEnabled();
+    final recipeSuggestionsEnabled =
+        await AppSettingsService.getRecipeSuggestionsEnabled();
     if (mounted) {
       setState(() {
         _pushNotifications = notificationsEnabled;

@@ -2,7 +2,9 @@
 
 A direct, honest answer for each data type: where it lives, whether it survives logout/login, whether it survives an uninstall/reinstall, whether it reaches a second device, and what actually triggers a sync. Verified against the current code, not assumed from feature descriptions elsewhere.
 
-**Read this first — the single most important, least obvious fact in this whole document:** in the deployed, standalone app (what a real user installs — a release APK), the pantry backend is **never actually local to the phone**. `ApiService` makes a real network call to `https://fridge2table-backend.onrender.com` for every single pantry read/write; there is no on-device pantry database at all in production. This directly contradicts the current `Privacy Policy` screen's own wording ("Your pantry data lives in a local database on your own device by default... it can optionally sync to a cloud database") — that description does not match the shipped app's actual behavior. It's most plausibly leftover wording from an earlier point in the project (before the Render + Supabase Postgres standalone deployment existed, when a local backend really would have meant "on the dev machine"), never updated after the architecture changed. This matters a lot for how "cloud sync" should be understood below.
+**Read this first — the single most important, least obvious fact in this whole document:** the FastAPI **backend** (not the phone) is the pantry's source of truth. `ApiService` makes a real network call to `https://fridge2table-backend.onrender.com` for every pantry read/write when reachable. This directly contradicts the current `Privacy Policy` screen's own wording ("Your pantry data lives in a local database on your own device by default... it can optionally sync to a cloud database") — that description does not match the shipped app's actual behavior. It's most plausibly leftover wording from an earlier point in the project (before the Render + Supabase Postgres standalone deployment existed, when a local backend really would have meant "on the dev machine"), never updated after the architecture changed.
+
+**Update (offline mode):** the phone *does* now carry an on-device pantry database — `LocalPantryStore` (sqflite, table `pantry_items`) — added specifically so the Pantry screen keeps working with no network. It is a **cache and pending-write queue, not a second source of truth**: every read reconciles it against the backend when reachable (see `docs/ARCHITECTURE.md` §7), and a fresh install with the backend reachable rebuilds it from nothing. The one case where data genuinely lives *only* on the phone, even if briefly, is a create/edit/delete made while offline — it's queued in `LocalPantryStore` until the next reconnect and would be lost if the app were uninstalled before that sync ran. This matters a lot for how "cloud sync" should be understood below.
 
 ---
 
@@ -10,11 +12,30 @@ A direct, honest answer for each data type: where it lives, whether it survives 
 
 | Question | Answer |
 |---|---|
-| **Where stored** | Primary: the FastAPI backend's `pantry_items` table. In production this is a Supabase Postgres table — already cloud-hosted, reached identically by every device via the same REST API. (Only in *local development*, with no `DATABASE_URL` set, is this a SQLite file — and even then, it's local to the *developer's machine*, not the phone.) Secondary/backup: a separate Supabase table, `public.ingredients`, written to directly by the Flutter app via the Supabase SDK. |
+| **Where stored** | Primary/source of truth: the FastAPI backend's `pantry_items` table. In production this is a Supabase Postgres table — already cloud-hosted, reached identically by every device via the same REST API. (Only in *local development*, with no `DATABASE_URL` set, is this a SQLite file on the developer's machine.) Backup mirror: a separate Supabase table, `public.ingredients`, written to directly by the Flutter app via the Supabase SDK. On-device cache: `LocalPantryStore` (sqflite) — see the new section below. |
 | **Survives logout/login (same device)** | Yes. Pantry data was never tied to a local app session — `GET /inventory` returns the same rows for the same account regardless of how many times you've logged in and out. |
-| **Survives uninstall/reinstall** | Yes, in the deployed app — because the data was never on the device to begin with. Reinstalling and signing back into the same account immediately shows the full pantry via the API. This holds with **zero dependency** on the separate `SupabaseService` sync mechanism below. |
-| **Syncs across devices** | Yes, automatically and immediately, for the same reason — every device's app talks to the identical central backend. A second device signing into the same account sees the same pantry the moment it calls `GET /inventory`, without needing to press "Sync Now" or wait for any background sync. |
-| **What triggers a "sync"** | The word "sync" in this app specifically refers to the *secondary* mechanism: `SupabaseService.resolveConflicts()`, reconciling the backend's `pantry_items` against the separate `public.ingredients` mirror table. This runs automatically (silently, best-effort) on every app launch, and manually via the Cloud Sync screen's "Sync Now" button. **This secondary sync is not what makes multi-device pantry access work** — it's an additional, largely redundant backup layer in a second table, most plausibly a holdover from Phase 10 (built before the backend itself was centrally hosted). |
+| **Survives uninstall/reinstall** | Yes, for anything already synced to the backend — reinstalling and signing back in re-fetches the full pantry via the API into a fresh, empty `LocalPantryStore`. The exception: an offline create/edit/delete not yet synced at the moment of uninstall is genuinely gone (it only ever existed in the now-deleted local cache). |
+| **Syncs across devices** | Yes, automatically and immediately, for the same reason — every device's app talks to the identical central backend. A second device signing into the same account sees the same pantry the moment it calls `GET /inventory`, without needing to press "Back Up Now" or wait for any background sync. |
+| **What triggers a "sync"** | Two independent, unrelated mechanisms share the word "sync" in this app — see the two new sections below (offline cache reconciliation, and the Backup & Restore mirror). Neither is what makes multi-device pantry access work; that's just both devices talking to the same backend. |
+
+### On-device offline cache — `LocalPantryStore`
+
+| Question | Answer |
+|---|---|
+| **Where stored** | sqflite, table `pantry_items` (device-local file, distinct from the backend's table of the same name), scoped per user via `UserScope.uid`. |
+| **What it's for** | Lets the Pantry screen load and stay editable with no network at all. Every `ApiService.getInventory()` call pushes any queued offline edits, fetches a fresh snapshot from the backend when reachable, and re-caches it here; when unreachable, reads fall back to whatever's cached. See `docs/ARCHITECTURE.md` §7 for the full reconciliation flow. |
+| **Survives logout/login (same device)** | Yes — scoped by `UserScope.uid`, same pattern as every other per-user local store in this document. |
+| **Survives uninstall/reinstall** | No (it's a cache) — rebuilt from the backend on first successful fetch after reinstall. The one caveat: any offline edit still queued (`pending_action` set, not yet pushed) at the moment of uninstall is lost for good, since the backend never received it. |
+| **Syncs across devices** | N/A — purely a local mirror of whatever the backend already has (plus this device's own not-yet-pushed edits); it doesn't sync *to* anything itself. |
+
+### Cloud backup mirror — `public.ingredients` (Supabase)
+
+| Question | Answer |
+|---|---|
+| **Where stored** | A second Supabase Postgres table, written to directly by the Flutter app via the Supabase SDK (not through the FastAPI backend), Row-Level-Security-protected per user. |
+| **What it's for** | A restore point independent of the backend/Render — the Backup & Restore screen's "Back Up Now"/"Restore" and the automatic WiFi/mobile-data-gated background backup all read/write this table via `SupabaseService.resolveConflicts()`/`syncToCloud()`/`syncFromCloud()` (`docs/ARCHITECTURE.md` §6). Not what makes multi-device access work — that's the shared backend, not this. |
+| **Survives uninstall/reinstall** | Yes (cloud-hosted) — this is the whole point of it existing. |
+| **Syncs across devices** | Yes, same account sees the same mirror rows from any device. |
 
 ## User Account (email, password, name)
 
@@ -70,7 +91,9 @@ There is **no explicit persisted flag** for "has this user finished onboarding."
 
 | Data type | Local-only or cloud-backed? | Survives logout/login | Survives uninstall | Syncs across devices |
 |---|---|---|---|---|
-| Pantry ingredients | Cloud-backed (always, via the backend) | ✅ | ✅ | ✅ (automatic, no "sync" needed) |
+| Pantry ingredients | Cloud-backed (via the backend); on-device cache for offline use | ✅ | ✅* | ✅ (automatic, no "sync" needed) |
+| — offline cache (`LocalPantryStore`) | Local-only (cache + pending-write queue) | ✅ | ❌ (rebuilt) | N/A |
+| — backup mirror (`public.ingredients`) | Cloud-backed (Supabase) | ✅ | ✅ | ✅ |
 | User account (email/name/password) | Cloud-backed (Supabase Auth) | ✅ | ✅ | ✅ |
 | Diet preferences | **Local-only** | ✅ | ❌ | ❌ |
 | Allergies | **Local-only** | ✅ | ❌ | ❌ |
@@ -78,3 +101,5 @@ There is **no explicit persisted flag** for "has this user finished onboarding."
 | Saved recipe bookmarks | **Local-only** | ✅ | ❌ | ❌ |
 | Delete tombstones (internal) | **Local-only** | ✅ | ❌ | ❌ (by design) |
 | Cached identity (name/email display copy) | Local cache of cloud data | ✅ (rebuilt) | ❌ (rebuilt on next sign-in) | N/A |
+
+\* Except an offline create/edit/delete still queued in `LocalPantryStore` at the exact moment of uninstall — the backend never received it, so it's genuinely gone. Anything already synced is unaffected.

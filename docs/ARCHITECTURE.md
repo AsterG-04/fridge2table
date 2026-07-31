@@ -168,7 +168,7 @@ Key files: `frontend/fridge2table_app/lib/screens/recipe_detail_screen.dart`, `c
 
 ## 6. Data Flow: Cloud Sync (with Conflict Resolution & Tombstone Handling)
 
-`resolveConflicts()` is the two-way sync used both automatically (on every app launch, `MainScreen.initState()`, best-effort/silent) and manually (Cloud Sync screen's "Sync Now" button).
+`resolveConflicts()` is the two-way sync used both automatically (`SupabaseService.autoBackupIfAllowed()`, called from `MainScreen.initState()` and a 15-minute background timer while "Background Backup" is on — gated on the "Auto Backup on WiFi"/"Auto Backup on Mobile Data" toggles, best-effort/silent) and manually (Cloud Sync screen's "Back Up Now" button — always runs regardless of those toggles, since a deliberate tap should). `syncFromCloud()` (pull-only) backs the same screen's "Restore" button.
 
 ```mermaid
 flowchart TD
@@ -201,7 +201,33 @@ flowchart TD
 
 Key files: `frontend/fridge2table_app/lib/services/supabase_service.dart`, `delete_tombstones.dart`, `api_service.dart`.
 
-## 7. Data Flow: AI Ingredient Detection (Camera → TFLite → Prediction → Prefill)
+**Interaction with offline mode (§7):** `resolveConflicts()`/`syncFromCloud()` call `ApiService.addIngredient(cloudItem)` for every cloud-only row, and rely on that call preserving `cloudItem.id` so the resulting local row lands on the backend with the *same* id — that's what makes a repeated sync idempotent (the backend's `create_ingredient` upserts by id instead of inserting a fresh row every time). `ApiService._createIngredientOnServer()` therefore only strips an id when it's `null` or the offline-queue's negative local-only sentinel (see §7) — never a genuine positive id. Stripping *all* ids unconditionally was a real bug shipped briefly during offline-mode development: every cloud-only row got a new id on every sync, so it could never be recognized as "already pulled in" and kept getting re-created, duplicating the pantry on every Backup/Restore tap. Confirmed fixed with real before/after row counts logged from `syncToCloud`/`syncFromCloud`/`resolveConflicts` (all three now log local/cloud id sets before and after every run).
+
+## 7. Data Flow: Offline Mode & Local Cache
+
+Everything in this section lives behind `ApiService`'s existing public methods (`getInventory`, `addIngredient`, `updateIngredient`, `deleteIngredient`) — no screen had to change to gain offline support, since the offline-awareness is entirely internal to `ApiService`.
+
+```mermaid
+flowchart TD
+    GI(["ApiService.getInventory()"]) --> Push["_pushPendingChanges():\nfor every row in LocalPantryStore\nwith a pending_action, replay it\n(create/update/delete) against the backend,\nin the order the edits were made"]
+    Push --> Online{"Backend reachable?"}
+    Online -- "No (NetworkUnavailableException)" --> Cached["Return LocalPantryStore\n.getVisibleInventory()\n(last cached snapshot + anything\nstill pending, negative ids and all)"]
+    Online -- Yes --> Fetch["Fetch fresh /inventory from backend"]
+    Fetch --> Snapshot["LocalPantryStore.cacheServerSnapshot():\nreplace every non-pending local row\nwith the fresh server list\n(skips ids that still have a pending\nrow, to avoid a duplicate if that\none row's push failed for a\nnon-connectivity reason)"]
+    Snapshot --> Cached2["Return LocalPantryStore\n.getVisibleInventory()"]
+```
+
+- **Local mirror:** `LocalPantryStore` (sqflite, table `pantry_items`, one file per device — not to be confused with the *backend's* table of the same name) mirrors the backend's pantry, scoped per user via `UserScope.uid`. Each row carries `server_id` (null until synced) and `pending_action` (`null` / `create` / `update` / `delete`) — a row holds only its *current net* pending state, not an operation log, which is what makes two rapid offline edits to the same ingredient collapse into "last edit wins" for free.
+- **Ids:** the app-facing `Ingredient.id` is `server_id` when known, or `-local_id` (negative) when a create is still only local. Screens never need to know which — `id < 0` is the only check `ApiService` itself uses to decide whether a `update`/`delete` call even has anything to push to the network.
+- **Add/update/delete (`addIngredient`/`updateIngredient`/`deleteIngredient`):** always write to `LocalPantryStore` first (instant, works offline), then attempt the matching network call immediately. On `NetworkUnavailableException` the local write already succeeded, so the call returns normally — the row stays queued for the next sync pass rather than surfacing an error.
+- **Reconnect sync:** `MainScreen` holds a `connectivity_plus` listener; on the offline→online transition it calls `ApiService.getInventory()` (fire-and-forget), which is exactly the push-then-fetch pass diagrammed above. There is no separate "sync service" — `getInventory()` opportunistically doing this on every call is what keeps the cache correct without a dedicated background job.
+- **Deletes reuse the cloud-sync tombstone dance** (§6) rather than duplicating it: the same `_deleteIngredientOnServer()` helper (delete → `DeleteTombstones.add()` → mirror-delete → `DeleteTombstones.remove()` on success) is called both for an immediate online delete and for a queued delete replayed later by `_pushPendingChanges()`.
+- **Recipe matching also works offline now** (added in a follow-up to the original offline-mode work above): `getRecipesDetailed()`/`getAiRecommendation()` catch `NetworkUnavailableException` the same way the pantry methods do, falling back to `LocalRecipeMatcher` — a Dart port of the backend's own matching algorithm (`_normalize`, the scoring/threshold constants, the expiry-annotation logic), run against a bundled copy of `recipes_full.json` and the cached pantry from `LocalPantryStore`. Deliberately kept rule-for-rule identical to the backend rather than "close enough", so offline results don't visibly differ from online ones for the same pantry — confirmed, not assumed: `test/local_recipe_matcher_test.dart` was cross-checked against the backend's `_matched_recipes`/`_expiry_map` called directly (no HTTP/DB) for four real pantries, byte-identical results on every one (recipe names, `match_score`, `matched_ingredients`, `expired_ingredients`/`expiring_ingredients`) after fixing one real gap the comparison surfaced: neither side previously had a deterministic tie-break for recipes sharing the same `match_score` at the 25-result cutoff, so both now sort by `(match_score desc, name asc)`. Full detail: `docs/CODEBASE_GUIDE.md`'s "Frontend Tests" section. The one thing with no offline equivalent is the OpenRouter LLM re-rank on `/ai-recommendation` — offline always uses the same deterministic top-match fallback the backend itself uses when no API key is configured, there's no local LLM to substitute. `RecipeScreen` no longer blocks on a connectivity check; it shows a small "Offline — showing matches from your last synced pantry" note instead when there's no connection.
+- **Still explicitly out of scope:** the OpenRouter LLM re-rank itself (no local model), and Cooked History/Statistics' AI-recommendation *source* attribution isn't distinguished offline vs. online in the UI (both just show a recipe name). AI Camera ingredient scanning was already 100% on-device (TFLite, §8) and needed no changes; only its final "save to pantry" step flows through the now offline-aware `addIngredient`/`updateIngredient`. Cooking a matched recipe and recording it to history also already worked offline with no changes needed — `RecipeCookingService.planUsage()`/`deduct()` already routed through the offline-aware `ApiService` pantry methods with defensive try/catch, and `CookedHistoryStore` is pure `SharedPreferences`, no network involved at any point.
+
+Key files: `frontend/fridge2table_app/lib/services/local_pantry_store.dart`, `local_recipe_matcher.dart`, `api_service.dart`, `main.dart` (`_MainScreenState._listenForReconnect`), `widgets/offline_banner.dart`, `assets/data/recipes_full.json` (bundled copy of the backend's recipe dataset — must be manually re-copied from `backend/data/recipes_full.json` if that ever changes; there's no automated sync).
+
+## 8. Data Flow: AI Ingredient Detection (Camera → TFLite → Prediction → Prefill)
 
 ```mermaid
 sequenceDiagram
@@ -235,48 +261,71 @@ Key files: `frontend/fridge2table_app/lib/services/ingredient_classifier_service
 
 ---
 
-## 8. Service-by-Service Reference
+## 9. Service-by-Service Reference
 
 All services live in `frontend/fridge2table_app/lib/services/`. None of them hold Flutter widget state — they're plain static-method classes called from screens.
 
 ### `ApiService` (`api_service.dart`)
-The **only** place that talks to the FastAPI backend. Every screen goes through this, never `http` directly.
+
+The **only** place that talks to the FastAPI backend. Every screen goes through this, never `http` directly. Offline-aware (see §7) — the four pantry CRUD methods below fall back to/queue in `LocalPantryStore` internally; every other caller sees the same signatures as before offline mode existed.
+
 - `_userId` (private getter) — throws if nobody is signed in; every request is scoped by this.
-- `_send()` (private) — wraps every HTTP call with a 10-second timeout and translates `TimeoutException`/`SocketException` into specific, actionable error messages (including detecting the "forgot `adb reverse`" case on physical dev devices).
-- `getInventory()`, `addIngredient()`, `updateIngredient()`, `deleteIngredient()` — CRUD against `/inventory`, `/ingredient`. `deleteIngredient()` additionally manages the delete-tombstone lifecycle and mirrors the delete to `SupabaseService`.
-- `getRecipes()` (returns names only, legacy/simple form), `getRecipesDetailed()` (full recipe objects), `getAiRecommendation()`, `getExpiryStatus()`.
+- `_send()` (private) — wraps every HTTP call with a 10-second timeout and translates `TimeoutException`/`SocketException` into a `NetworkUnavailableException` with a specific, actionable message (including detecting the "forgot `adb reverse`" case on physical dev devices) — this is the exception type the offline-aware methods below catch specifically to fall back to the local cache, as opposed to a real HTTP error from a reachable server.
+- `getInventory()`, `addIngredient()`, `updateIngredient()`, `deleteIngredient()` — CRUD against `/inventory`, `/ingredient`, now local-first/offline-queueing (§7). `deleteIngredient()` additionally manages the delete-tombstone lifecycle and mirrors the delete to `SupabaseService`.
+- `getPendingIngredientIds()` — ids of rows still waiting to sync, purely for the Pantry screen's "Syncing…" card indicator.
+- `getRecipesDetailed()` (full recipe objects), `getAiRecommendation()` — offline-aware (fall back to `LocalRecipeMatcher`, see §7). `getExpiryStatus()` stays online-only, deliberate (out of the literal offline scope; `NotificationService` already tolerates its failure gracefully). `getRecipes()` (names-only, legacy) is unused dead code — confirmed via a repo-wide search, nothing calls it — and was left untouched.
+
+### `LocalPantryStore` (`local_pantry_store.dart`)
+
+The sqflite-backed local pantry mirror behind `ApiService`'s offline support. See §7 for the full picture; not called directly by any screen.
+
+### `LocalRecipeMatcher` (`local_recipe_matcher.dart`)
+
+A Dart port of the backend's recipe-matching algorithm, run against a bundled copy of `recipes_full.json` for offline use. See §7; not called directly by any screen (goes through `ApiService`).
 
 ### `SupabaseService` (`supabase_service.dart`)
+
 The **only** place that talks to Supabase's cloud-sync table (`public.ingredients`) or Supabase Auth session state directly.
+
 - `initialize()` — called once in `main()`, sets up secure-storage-backed session/PKCE persistence.
 - `suppressRootAuthListener` — a flag password sign-in sets so it doesn't race `main.dart`'s root auth listener.
 - `deleteIngredient()`, `syncToCloud()`, `syncFromCloud()`, `resolveConflicts()` — see §6 above.
 
 ### `AuthService` (`auth_service.dart`)
+
 Local cache of identity + non-sensitive preferences. **Not** the source of truth for credentials (Supabase Auth is) — this only mirrors display data.
+
 - `cacheIdentity()`, `getName()`, `getEmail()`, `getCreatedAt()`, `clearSession()` — secure-storage-backed.
 - `saveDietPreferences()`, `getDietPreferences()`, `saveAllergies()`, `getAllergies()` — `SharedPreferences`-backed, keyed via `UserScope`.
 
 ### `UserScope` (`user_scope.dart`)
+
 Namespaces `SharedPreferences` keys by the signed-in Supabase user's id (or a random per-install fallback id if signed out), so switching accounts on one device can't leak one user's local data into another's. Used by `AuthService`, `CookedHistoryStore`, `SavedRecipesStore`, `DeleteTombstones`.
 
 ### `DeleteTombstones` (`delete_tombstones.dart`)
+
 Persisted per-user set of ingredient ids deleted locally whose cloud mirror-delete hasn't been confirmed yet. See §6.
 
 ### `IngredientClassifierService` (`ingredient_classifier_service.dart`)
+
 Loads the bundled TFLite model + class-names JSON once (memoized), runs inference. See §7.
 
 ### `RecipeCookingService` (`recipe_cooking_service.dart`)
+
 Pure logic, no state: `planUsage()` (pre-deduction preview) and `deduct()` (actually subtracts from the pantry, deletes if a quantity hits zero). Contains the unit-aware `_typicalUsage()` defaults (e.g. 100g, 2pcs, 0.5 cups) since real recipes only list ingredient names, not quantities.
 
 ### `NotificationService` (`notification_service.dart`)
-Implemented (`initialize()`, `checkAndNotify()`) but **never called anywhere in the app** — see `docs/PROJECT_OVERVIEW.md` §6. Would, if wired up, fire one OS notification per expired/today/soon ingredient, using the ingredient's own database id as the notification id so repeat calls replace rather than duplicate.
+
+Fires one OS notification per expired/today/soon ingredient (`checkAndNotify()`), using the ingredient's own database id as the notification id so repeat calls replace rather than duplicate; a per-user, per-day history in `SharedPreferences` keeps it from re-notifying the same still-expiring item more than once a day. Called from `HomeScreen.initState()` and on every app resume (`MainScreen.didChangeAppLifecycleState`). `initialize()` (Android notification channel setup) is fired unawaited right after `runApp()` in `main.dart`, not before it — deferred off the startup critical path since nothing on the first screen needs it; `checkAndNotify()`/`requestPermission()` both `await initialize()` themselves first, so this is safe regardless of which finishes first.
 
 ### `SecureSupabaseLocalStorage` / `SecureSupabasePkceStorage` (`secure_storage_service.dart`)
+
 Adapter classes handed to `Supabase.initialize()` so the session and PKCE verifier persist in `flutter_secure_storage` instead of the package's plain-`SharedPreferences` default.
 
 ### `CookedHistoryStore` (`models/cooked_history_entry.dart` — a store class alongside the model, not a separate service file)
+
 Per-user, `SharedPreferences`-backed history of cooked recipes. In-memory cache + `reset()` (called on logout) on top of the persisted list. Also derives `ecoScore`, `badgeCount`, category breakdowns, etc.
 
 ### `SavedRecipesStore` (`saved_recipes_store.dart`)
+
 Same pattern as `CookedHistoryStore`, for bookmarked recipe names.

@@ -90,7 +90,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const DietPreferencesScreen()),
+        MaterialPageRoute(
+          builder: (_) => const DietPreferencesScreen(isOnboarding: true),
+        ),
       );
     } on AuthException catch (e) {
       _showError(e.message);

@@ -134,21 +134,13 @@ class _RecipeScreenState extends State<RecipeScreen> {
     });
   }
 
-  /// Recipes and AI recommendations require the backend -- there's no local
-  /// recipe engine, and this deliberately does not pretend otherwise. A
-  /// connectivity check up front means a genuinely offline device gets a
-  /// clear "you need a connection" message immediately, rather than the
-  /// more generic timeout/socket-error wording ApiService produces when it
-  /// actually attempts and fails a request (still accurate, just phrased
-  /// for a dev debugging a misconfigured backend rather than an end user
-  /// who's simply lost signal).
-  Future<List<Map<String, dynamic>>> _loadRecipes() async {
-    final results = await Connectivity().checkConnectivity();
-    if (isOfflineResult(results)) {
-      throw Exception(
-        "Recipes need an internet connection. Reconnect and try again.",
-      );
-    }
+  /// Recipes now work offline too -- ApiService.getRecipesDetailed() runs
+  /// the same matching against the backend when reachable, or against the
+  /// cached pantry via LocalRecipeMatcher when it isn't (see that class's
+  /// doc comment). No connectivity preflight needed here anymore; a
+  /// genuine failure (e.g. corrupt local cache) still surfaces through the
+  /// normal AsyncStateBuilder error path.
+  Future<List<Map<String, dynamic>>> _loadRecipes() {
     return ApiService.getRecipesDetailed();
   }
 
@@ -217,6 +209,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
           _buildHeader(),
           _buildSearchBar(),
           _buildFilterChips(),
+          _buildOfflineMatchNote(),
           _buildAiBanner(),
           Expanded(child: _buildRecipeList()),
         ],
@@ -427,6 +420,39 @@ class _RecipeScreenState extends State<RecipeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildOfflineMatchNote() {
+    return StreamBuilder<List<ConnectivityResult>>(
+      stream: Connectivity().onConnectivityChanged,
+      builder: (context, snapshot) {
+        final offline = snapshot.hasData && isOfflineResult(snapshot.data!);
+        if (!offline) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.offline_bolt_outlined,
+                size: 14,
+                color: AppColors.textGray,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "Offline — showing matches from your last synced pantry",
+                  style: const TextStyle(
+                    color: AppColors.textGray,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
